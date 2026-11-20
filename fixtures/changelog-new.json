@@ -1,0 +1,351 @@
+{
+  "restep": "1.1",
+  "version": "1",
+  "profiles": [
+    "core",
+    "query",
+    "writes",
+    "relations",
+    "sync"
+  ],
+  "extensions": [
+    "actions",
+    "batch"
+  ],
+  "batch": {
+    "path": "/batch",
+    "max_operations": 20
+  },
+  "idempotency": {
+    "ttl": 86400
+  },
+  "events": "/events",
+  "status": "/health",
+  "collections": {
+    "books": {
+      "path": "/books",
+      "description": "Libros del catálogo, uno por edición y formato.",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "item_methods": [
+        "GET",
+        "PATCH",
+        "DELETE"
+      ],
+      "schemas": {
+        "item": {
+          "type": "object",
+          "required": [
+            "id",
+            "title",
+            "price"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "readOnly": true
+            },
+            "title": {
+              "type": "string"
+            },
+            "price": {
+              "type": "string",
+              "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
+            },
+            "rating": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "category": {
+              "type": "string",
+              "enum": [
+                "novela-negra",
+                "poesia"
+              ]
+            },
+            "author": {
+              "type": "object",
+              "required": [
+                "id"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              }
+            },
+            "year": {
+              "type": "integer"
+            }
+          }
+        },
+        "create": {
+          "type": "object",
+          "required": [
+            "title",
+            "price",
+            "category"
+          ],
+          "properties": {
+            "title": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "price": {
+              "type": "string",
+              "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
+            },
+            "rating": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "category": {
+              "type": "string",
+              "enum": [
+                "novela-negra",
+                "poesia"
+              ]
+            },
+            "author": {
+              "type": "object",
+              "required": [
+                "id"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              }
+            },
+            "year": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": false
+        },
+        "update": "/schemas/book-update.json"
+      },
+      "filter": {
+        "id": {
+          "type": "string",
+          "ops": [
+            "eq",
+            "in"
+          ]
+        },
+        "price": {
+          "type": "decimal",
+          "ops": [
+            "eq",
+            "lt",
+            "le",
+            "gt",
+            "ge"
+          ]
+        },
+        "rating": {
+          "type": "number",
+          "ops": [
+            "ge",
+            "null"
+          ]
+        },
+        "category": {
+          "type": "enum",
+          "values": [
+            "novela-negra",
+            "poesia"
+          ],
+          "ops": [
+            "eq",
+            "in"
+          ]
+        },
+        "author.id": {
+          "type": "string",
+          "ops": [
+            "eq",
+            "in"
+          ]
+        },
+        "year": {
+          "type": "integer",
+          "ops": [
+            "eq",
+            "lt",
+            "gt"
+          ]
+        }
+      },
+      "sort": [
+        "id",
+        "price",
+        "rating"
+      ],
+      "max_limit": 25,
+      "count": "estimated",
+      "relations": {
+        "author": {
+          "to": "authors",
+          "include": true
+        },
+        "reviews": {
+          "to": "reviews",
+          "many": true,
+          "path": "/books/{id}/reviews"
+        }
+      },
+      "include_depth": 2,
+      "sync": {
+        "retention": 604800
+      },
+      "actions": {
+        "reserve": {
+          "on": "item",
+          "safe": false,
+          "idempotent": true,
+          "description": "Aparta un ejemplar durante 48 horas.",
+          "input": {
+            "type": "object",
+            "required": [
+              "hours"
+            ],
+            "properties": {
+              "hours": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 48
+              }
+            }
+          }
+        },
+        "preview": {
+          "on": "item",
+          "safe": true,
+          "idempotent": true,
+          "method": "GET"
+        }
+      },
+      "deprecations": [
+        {
+          "kind": "field",
+          "name": "rating",
+          "sunset": "2027-09-01T00:00:00Z"
+        }
+      ]
+    },
+    "reviews": {
+      "path": "/books/{id}/reviews",
+      "sort": [
+        "id",
+        "created_at"
+      ],
+      "max_limit": 50
+    },
+    "authors": {
+      "path": "/authors",
+      "methods": [
+        "GET"
+      ],
+      "item_methods": [
+        "GET",
+        "PATCH"
+      ]
+    },
+    "products": {
+      "path": "/products",
+      "schemas": {
+        "item": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "price": {
+              "type": "string"
+            },
+            "tax_rate": {
+              "type": "string",
+              "readOnly": true
+            },
+            "tax_rate_own": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "category": {
+              "type": "object"
+            }
+          }
+        },
+        "update": {
+          "type": "object",
+          "properties": {
+            "price": {
+              "type": "string"
+            },
+            "tax_rate_own": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "category": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "language_maps": {
+        "name": {}
+      },
+      "relations": {
+        "category": {
+          "to": "categories"
+        }
+      },
+      "inherit": {
+        "tax_rate": {
+          "own": "tax_rate_own",
+          "from": [
+            "category"
+          ],
+          "default": true
+        }
+      }
+    },
+    "categories": {
+      "path": "/categories",
+      "relations": {
+        "parent": {
+          "to": "categories"
+        }
+      }
+    },
+    "shelves": {
+      "path": "/shelves",
+      "description": "Estanterías de la tienda.",
+      "methods": [
+        "GET"
+      ],
+      "item_methods": [
+        "GET"
+      ]
+    }
+  }
+}
