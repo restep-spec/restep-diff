@@ -3,6 +3,10 @@
   "version": "0.2.0",
   "description": "Compara dos documentos de descubrimiento de Restep 1 y clasifica cada cambio según sus reglas de evolución",
   "license": "MIT",
+  "files": [
+    "restep-diff.mjs",
+    "README.md"
+  ],
   "type": "module",
   "bin": {
     "restep-diff": "restep-diff.mjs"
