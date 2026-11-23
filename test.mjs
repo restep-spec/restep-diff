@@ -134,19 +134,30 @@ try {
     // books: year pasa a ser obligatorio (en create y en item, y deja de admitir null)
     ["required: ['title', 'price'],", "required: ['title', 'price', 'year'],"],
     // books: max_limit baja de 50 a 20
-    ["    max_limit: 50,\n    count: 'exact',\n    rows: rows([\n      { id: '7',", "    max_limit: 20,\n    count: 'exact',\n    rows: rows([\n      { id: '7',"],
+    ["    max_limit: 50,\n    count: 'exact',\n    // 5.5: sorting by year", "    max_limit: 20,\n    count: 'exact',\n    // 5.5: sorting by year"],
     // books: una categoría más
     ["'poesia', 'infantil'] },", "'poesia', 'infantil', 'comic'] },"],
     // categories: sus elementos dejan de admitir DELETE
-    ["methods: ['GET', 'POST'], item_methods: ['GET', 'PATCH', 'DELETE'],\n    types: { id: 'string', name: 'string', parent:",
-      "methods: ['GET', 'POST'], item_methods: ['GET', 'PATCH'],\n    types: { id: 'string', name: 'string', parent:"],
+    ["methods: ['GET', 'POST'], item_methods: ['GET', 'PATCH', 'DELETE'],\n    id_from: 'either',",
+      "methods: ['GET', 'POST'], item_methods: ['GET', 'PATCH'],\n    id_from: 'either',"],
     // books: filtro nuevo por title
     ["filter: { id: ['eq', 'in'], price: ['eq', 'lt', 'le', 'gt', 'ge'], category: ['eq', 'ne', 'in'],",
       "filter: { id: ['eq', 'in'], title: ['eq'], price: ['eq', 'lt', 'le', 'gt', 'ge'], category: ['eq', 'ne', 'in'],"],
+    // categories: la colación de name pasa de server a codepoint (borrador 6, §6.1)
+    ["collations: { name: 'server' },", "collations: { name: 'codepoint' },"],
+    // categories: el cliente tiene que elegir el id (borrador 6, §5.1)
+    ["    id_from: 'either',", "    id_from: 'client',"],
+    // books: highlight deja de poder expandirse con include (9)
+    ["highlight: { to: 'reviews', include: true },", "highlight: { to: 'reviews' },"],
+    // products: restock pasa a ser idempotente (11.1, tabla de 5.5)
+    ["restock: { on: 'item', safe: false, idempotent: false,", "restock: { on: 'item', safe: false, idempotent: true,"],
+    // reviews, una subcolección: cuelga de otra variable con otro nombre (la misma URL) y gana include_depth
+    ["include_depth: 2,", "include_depth: 3,"],
+    // shop, un singleton (§5.9): deja de admitir PATCH
+    ["  methods: ['GET', 'PATCH'],\n  types: { name: 'string', email:", "  methods: ['GET'],\n  types: { name: 'string', email:"],
   ];
   const EXPECTED = {
     'sort.removed': '/collections/books/sort',
-    'input.now-required': '/collections/books/schemas/create/properties/year',
     // update también: el servidor solo admite null en los campos que no son obligatorios
     'input.type-narrowed': ['/collections/books/schemas/create/properties/year', '/collections/books/schemas/update/properties/year'],
     'field.type': '/collections/books/schemas/item/properties/year',
@@ -154,8 +165,14 @@ try {
     'filter.values-added': '/collections/books/filter/category/values',
     'field.enum-added': '/collections/books/schemas/item/properties/category',
     'input.enum-added': ['/collections/books/schemas/create/properties/category', '/collections/books/schemas/update/properties/category'],
-    'method.removed': '/collections/categories/item_methods',
     'filter.added': '/collections/books/filter/title',
+    'collation.named': '/collections/categories/collations/name',
+    'relation.include-removed': '/collections/books/relations/highlight/include',
+    'action.stronger': '/collections/products/actions/restock/idempotent',
+    'include-depth.higher': '/collections/products/include_depth',
+    'id-from.changed': '/collections/categories/id_from',
+    'input.now-required': ['/collections/books/schemas/create/properties/year', '/collections/categories/schemas/create/properties/id'],
+    'method.removed': ['/collections/categories/item_methods', '/singletons/shop/methods'],
   };
   if (!only || 'servidor'.includes(only)) {
     let src = SERVER;
@@ -185,7 +202,7 @@ try {
         : setDiff(got, new Set(Object.keys(EXPECTED))) ?? (where.length ? `ubicaciones inesperadas: ${where.join('; ')}` : null));
       r = await cli([mut, ref, '--fail-on', 'none', '--json']);
       const back = JSON.parse(r.out).changes.map((c) => c.rule);
-      check('servidor: al revés, sort.added, max-limit.higher y method.added', ['sort.added', 'max-limit.higher', 'method.added', 'filter.removed'].every((x) => back.includes(x)) && r.code === 0
+      check('servidor: al revés, sort.added, max-limit.higher, method.added, filter.removed y collation.changed', ['sort.added', 'max-limit.higher', 'method.added', 'filter.removed', 'collation.changed'].every((x) => back.includes(x)) && r.code === 0
         ? null : `${r.code}: ${back.join(', ')}`);
     } finally {
       for (const p of servers) p.kill();
