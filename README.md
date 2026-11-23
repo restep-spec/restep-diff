@@ -10,9 +10,9 @@ dependencias.
 ## Uso
 
 ```bash
-node tools/restep-diff/restep-diff.mjs viejo.json nuevo.json
-node tools/restep-diff/restep-diff.mjs https://api.example.com/ http://localhost:8080/ --markdown
-node tools/restep-diff/restep-diff.mjs --rules          # la tabla de reglas
+npx restep-diff viejo.json nuevo.json
+npx restep-diff https://api.example.com/ http://localhost:8080/ --markdown
+npx restep-diff --rules          # la tabla de reglas
 ```
 
 Cada argumento es un archivo JSON con el documento de descubrimiento o la URL de la raíz de una
@@ -36,7 +36,7 @@ error de uso o un documento que no se pudo cargar.
 En CI, comparando lo desplegado con lo que se va a desplegar:
 
 ```bash
-node restep-diff.mjs https://api.example.com/ http://localhost:8080/ --markdown > cambios.md
+npx restep-diff https://api.example.com/ http://localhost:8080/ --markdown > cambios.md
 ```
 
 ## Gravedades
