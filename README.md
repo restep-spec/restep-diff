@@ -1,77 +1,76 @@
 # restep-diff
 
-Compara dos documentos de descubrimiento de [Restep 1](https://restep.wubytes.com/es/1/) (§4.2)
-y clasifica cada cambio según las reglas de evolución del borrador 6 de la especificación: §5.5
-y su tabla de cambios, con lo que añaden §1.1, §1.2, §3, §4.2, §4.3, §5.1, §5.4, §5.9, §6, §7.1,
-§9, §10 y §11. Sirve para revisar un despliegue antes de
-hacerlo, como paso de CI o para escribir el changelog. Un solo archivo, Node 18+, sin
-dependencias.
+Compares two [Restep 1](https://restep.wubytes.com/1/) discovery documents (§4.2) and classifies
+each change by the evolution rules of draft 6 of the specification: §5.5 and its table of
+changes, plus what §1.1, §1.2, §3, §4.2, §4.3, §5.1, §5.4, §5.9, §6, §7.1, §9, §10 and §11 add.
+Use it to review a deployment before doing it, as a CI step, or to write the changelog. A single
+file, Node 18+, no dependencies.
 
-## Uso
+## Usage
 
 ```bash
-npx restep-diff viejo.json nuevo.json
+npx restep-diff old.json new.json
 npx restep-diff https://api.example.com/ http://localhost:8080/ --markdown
-npx restep-diff --rules          # la tabla de reglas
+npx restep-diff --rules          # the rules table
 ```
 
-Cada argumento es un archivo JSON con el documento de descubrimiento o la URL de la raíz de una
-API. De una URL pide el documento como `restep-check`: un `GET` a la raíz y, si no es un
-documento de descubrimiento, el primer enlace `rel="service-desc"` que lleve a uno (§4.2).
-Las credenciales de `--header` solo van al origen de cada API (§4.3).
+Each argument is a JSON file holding the discovery document, or the URL of an API root. From a
+URL it fetches the document the way `restep-check` does: a `GET` to the root and, if that is not
+a discovery document, the first `rel="service-desc"` link that leads to one (§4.2).
+Credentials from `--header` are only sent to each API's own origin (§4.3).
 
-| Opción | Qué hace |
+| Option | What it does |
 |---|---|
-| `--json` | Salida en JSON: `summary` por gravedad y `changes`, cada uno con `rule`, `severity`, `sections`, `links`, `location` (un JSON Pointer dentro del documento nuevo o del viejo) y `message` |
-| `--markdown` | Salida en Markdown, para un changelog o un comentario de PR |
-| `--fail-on breaking\|deprecation\|none` | Cuándo sale con 1: si hay incompatibles (por defecto), si además hay retiradas o avisos, o nunca |
-| `--date <instante>` | Fecha con la que se decide si un `sunset` ya pasó y si un aviso da seis meses (por defecto, ahora) |
-| `--header "Nombre: valor"` | Cabecera para pedir los documentos, como `Authorization` (repetible) |
-| `--language <etiqueta>` | `Accept-Language` de esas peticiones: las descripciones pueden cambiar con él (§5.6) |
-| `--rules` | Lista las reglas (con `--json` o `--markdown`, en ese formato) |
+| `--json` | JSON output: `summary` by severity and `changes`, each with `rule`, `severity`, `sections`, `links`, `location` (a JSON Pointer into the new or the old document) and `message` |
+| `--markdown` | Markdown output, for a changelog or a PR comment |
+| `--fail-on breaking\|deprecation\|none` | When it exits with 1: on breaking changes (the default), also on retirements or notices, or never |
+| `--date <instant>` | Date used to decide whether a `sunset` has passed and whether a notice gives six months (default: now) |
+| `--header "Name: value"` | Header for fetching the documents, such as `Authorization` (repeatable) |
+| `--language <tag>` | `Accept-Language` for those requests: descriptions may change with it (§5.6) |
+| `--rules` | Lists the rules (in that format with `--json` or `--markdown`) |
 
-Códigos de salida: `0`, nada que haga fallar; `1`, hay cambios del nivel de `--fail-on`; `2`,
-error de uso o un documento que no se pudo cargar.
+Exit codes: `0`, nothing that fails; `1`, there are changes at the `--fail-on` level; `2`, usage
+error or a document that could not be loaded.
 
-En CI, comparando lo desplegado con lo que se va a desplegar:
+In CI, comparing what is deployed with what is about to be deployed:
 
 ```bash
-npx restep-diff https://api.example.com/ http://localhost:8080/ --markdown > cambios.md
+npx restep-diff https://api.example.com/ http://localhost:8080/ --markdown > changes.md
 ```
 
-## Gravedades
+## Severities
 
-- **Incompatibles** (`breaking`): lo que §5.5 dice que el servidor NO DEBE hacer dentro de una
-  versión, salvo retirándolo, y los cambios de la versión de Restep tras los que §1.1 y §1.2
-  dicen que el cliente ya no puede suponer lo que suponía.
-- **Retiradas y avisos** (`deprecation`): avisos nuevos o cambiados en `deprecations`, y lo que
-  desaparece tras anunciarse con un `sunset` que ya pasó. Eso último es la retirada que permite
-  §5.5 y que §12.1 (Evolución) excluye de «no desaparece nada declarado». Si desaparece algo
-  anunciado cuyo `sunset` no ha llegado, o sin fecha, sigue siendo incompatible, y el mensaje lo
-  dice.
-- **Compatibles** (`compatible`): lo que el servidor PUEDE hacer en cualquier momento. Algunas
-  filas de la tabla de §5.5 son compatibles con una condición que el documento no deja ver (bajar
-  `idempotency.ttl` o `sync.retention` manteniendo el plazo viejo para lo ya emitido, o que una
-  colación nombre la que ya se usaba): el mensaje recuerda la condición.
-- **Otros** (`info`): lo que la especificación no clasifica (textos) o que no se puede juzgar con
-  el documento solo (`id_from` de `"server"` a `"either"`).
+- **Breaking** (`breaking`): what §5.5 says the server MUST NOT do within a version, except by
+  retiring it, and the Restep version changes after which §1.1 and §1.2 say the client can no
+  longer assume what it used to.
+- **Retirements and notices** (`deprecation`): new or changed notices in `deprecations`, and
+  whatever disappears after being announced with a `sunset` that has already passed. The latter is
+  the retirement that §5.5 allows and that §12.1 (Evolution) excludes from "nothing declared
+  disappears". If something announced disappears before its `sunset`, or without a date, it is
+  still breaking, and the message says so.
+- **Compatible** (`compatible`): what the server MAY do at any time. Some rows of the §5.5 table
+  are compatible under a condition the document cannot show (lowering `idempotency.ttl` or
+  `sync.retention` while keeping the old period for what was already issued, or a collation that
+  names the one already in use): the message recalls the condition.
+- **Other** (`info`): what the specification does not classify (texts) or what cannot be judged
+  from the document alone (`id_from` from `"server"` to `"either"`).
 
-Para casar una retirada se busca en el documento viejo un aviso del `kind` que le toca, en el
-sitio donde §5.5 lo pone: en la raíz `profile`, `extension`, `collection`, `singleton` y
-`reason`; en la colección `field`, `filter`, `operator` (con `op`), `value` (con `value`), `sort`,
-`relation`, `include`, `count` (con `"estimated"` en `value` si el recuento pasa a estimado, sin
-`value` si desaparece), `max_limit` (con el límite nuevo en `value`), `action`, `method` e
-`item_method`; en un singleton `field` y `method`. Un aviso con otro `kind`, o fuera de su sitio,
-no cuenta (§4.2), y si es nuevo sale como `deprecation.unknown-kind`. Un aviso `field` vale
-también para los filtros, órdenes, inclusiones y campos de entrada de ese nombre y para las rutas
-con punto que empiezan por él (`author.id` para `author`). Retirar un perfil o una extensión
-retira también los que lo necesitan (§1.2): un aviso `profile` de `query` justifica que
-desaparezca `sync`. Los seis meses de `deprecation.short-notice` cuentan desde `announced`; si el
-aviso no lo trae, desde `--date`.
+To match a retirement, it looks in the old document for a notice of the right `kind`, in the
+place where §5.5 puts it: at the root `profile`, `extension`, `collection`, `singleton` and
+`reason`; in the collection `field`, `filter`, `operator` (with `op`), `value` (with `value`),
+`sort`, `relation`, `include`, `count` (with `"estimated"` in `value` if the count becomes
+estimated, without `value` if it disappears), `max_limit` (with the new limit in `value`),
+`action`, `method` and `item_method`; in a singleton `field` and `method`. A notice with another
+`kind`, or out of its place, does not count (§4.2), and if it is new it shows up as
+`deprecation.unknown-kind`. A `field` notice also covers the filters, sorts, includes and input
+fields of that name, and the dotted paths that start with it (`author.id` for `author`). Retiring
+a profile or an extension also retires the ones that need it (§1.2): a `profile` notice for
+`query` justifies `sync` disappearing. The six months of `deprecation.short-notice` count from
+`announced`; if the notice lacks it, from `--date`.
 
-## Reglas
+## Rules
 
-Generada con `--rules --markdown`; `test.mjs` comprueba que coincide con el código.
+Generated with `--rules --markdown`; `test.mjs` checks that it matches the code.
 
 <!-- reglas -->
 | Regla | Gravedad | Apartados | Qué detecta |
@@ -214,107 +213,106 @@ Generada con `--rules --markdown`; `test.mjs` comprueba que coincide con el cód
 | `member.changed` | info | [§4.2](https://restep.wubytes.com/es/1/#descubrimiento) | Cambia otro miembro del descubrimiento que restep-diff no clasifica. |
 <!-- /reglas -->
 
-## Qué compara
+## What it compares
 
-- La raíz: `restep` (con la gramática y el sufijo de §1.1), `version`, `profiles` (con `core`
-  implícito), `extensions`, `batch`, `idempotency` (`ttl` y `anonymous`, que si falta es `true`),
-  `events`, `status`, `reasons`, `singletons` y `deprecations`.
-- Cada colección: `path` (dos plantillas que solo cambian el nombre de sus variables son la
-  misma URL), `parent`, `description`, `methods`, `item_methods`, `id_from` (si falta es
-  `"server"`), `filter`, `named_filters`, `collations` (si falta un campo es `"codepoint"`),
-  `sort`, `max_limit`, `count`, `relations`, `include_depth` (1 si falta, §9), `sync`, `actions`,
-  `language_maps`, `inherit` y `deprecations`.
-- Cada singleton (§5.9): `path`, `description`, `methods`, `schemas` (`item` y `update`) y
-  `deprecations`. Un singleton con plantilla o con `parent` se trata como si no estuviera, porque
-  el cliente lo ignora.
-- `sync` solo cuenta en una colección si `profiles` anuncia `sync` (§10). Si desaparece el perfil
-  entero, lo dice `profile.removed` y no se repite por cada colección; lo mismo con `events`, y con
-  `batch` si desaparece la extensión.
-- Los esquemas incrustados (§4.3): las propiedades de primer nivel de `schemas.item` como lo que
-  el cliente recibe, y las de `schemas.create`, `schemas.update` y el `input` de cada acción como
-  lo que envía. Un tipo que admite más es compatible en la entrada; cualquier cambio de tipo en la
-  salida es incompatible. `anyOf` y `oneOf` se aplanan, así que `{"anyOf": [s, {"type": "null"}]}`
-  se lee como «s o null».
-- Los miembros `x-` se ignoran (§4.2). Otro miembro desconocido que cambie sale como `info`.
+- The root: `restep` (with the grammar and suffix of §1.1), `version`, `profiles` (with `core`
+  implied), `extensions`, `batch`, `idempotency` (`ttl` and `anonymous`, which is `true` if
+  missing), `events`, `status`, `reasons`, `singletons` and `deprecations`.
+- Each collection: `path` (two templates that only differ in the names of their variables are the
+  same URL), `parent`, `description`, `methods`, `item_methods`, `id_from` (`"server"` if
+  missing), `filter`, `named_filters`, `collations` (a missing field is `"codepoint"`), `sort`,
+  `max_limit`, `count`, `relations`, `include_depth` (1 if missing, §9), `sync`, `actions`,
+  `language_maps`, `inherit` and `deprecations`.
+- Each singleton (§5.9): `path`, `description`, `methods`, `schemas` (`item` and `update`) and
+  `deprecations`. A singleton with a template or with `parent` is treated as absent, because the
+  client ignores it.
+- `sync` only counts in a collection if `profiles` announces `sync` (§10). If the whole profile
+  disappears, `profile.removed` says so and it is not repeated for each collection; the same goes
+  for `events`, and for `batch` if the extension disappears.
+- Embedded schemas (§4.3): the top-level properties of `schemas.item` as what the client
+  receives, and those of `schemas.create`, `schemas.update` and each action's `input` as what it
+  sends. A type that accepts more is compatible on input; any type change on output is breaking.
+  `anyOf` and `oneOf` are flattened, so `{"anyOf": [s, {"type": "null"}]}` reads as "s or null".
+- `x-` members are ignored (§4.2). Any other unknown member that changes shows up as `info`.
 
-## Pruebas
+## Tests
 
 ```bash
-node tools/restep-diff/test.mjs            # desde projects/restep
-node tools/restep-diff/test.mjs filtro     # solo los pares cuyo nombre contiene «filtro»
+node tools/restep-diff/test.mjs            # from projects/restep
+node tools/restep-diff/test.mjs filtro     # only the pairs whose name contains "filtro"
 ```
 
-1. `fixtures/cases.json`: pares de descubrimientos construidos sobre `fixtures/base.json` con
-   JSON Merge Patch. Cada par tiene que dar exactamente las reglas que espera, y entre todos
-   tienen que cubrir todas las reglas.
-2. La CLI con `fixtures/changelog-old.json` y `fixtures/changelog-new.json`: texto, `--json`,
-   `--markdown`, `--fail-on`, `--date` y los errores de uso.
-3. El servidor de referencia (puerto 8820) frente a una copia mutada de él (puerto 8821, en un
-   directorio temporal): se quita un orden, se hace obligatorio un campo, baja `max_limit`, se
-   añade un valor de enumeración y un filtro, se quita un método de una colección y otro del
-   singleton `shop`, la colación de un campo pasa de `"server"` a `"codepoint"`, `id_from` de
-   `"either"` a `"client"`, una relación deja de poder expandirse, una acción pasa a ser idempotente y
-   sube `include_depth`. Los documentos se piden por HTTP.
+1. `fixtures/cases.json`: pairs of discovery documents built on `fixtures/base.json` with JSON
+   Merge Patch. Each pair must produce exactly the rules it expects, and together they must cover
+   every rule.
+2. The CLI with `fixtures/changelog-old.json` and `fixtures/changelog-new.json`: text, `--json`,
+   `--markdown`, `--fail-on`, `--date` and the usage errors.
+3. The reference server (port 8820) against a mutated copy of it (port 8821, in a temporary
+   directory): a sort is removed, a field becomes required, `max_limit` goes down, an enum value
+   and a filter are added, a method is removed from a collection and another from the `shop`
+   singleton, a field's collation goes from `"server"` to `"codepoint"`, `id_from` from
+   `"either"` to `"client"`, a relation can no longer be expanded, an action becomes idempotent and
+   `include_depth` goes up. The documents are fetched over HTTP.
 
-## Límites
+## Limits
 
-- Los esquemas que son enlaces no se descargan: solo se avisa si cambia el enlace.
-- De los esquemas solo se comparan las propiedades de primer nivel, sus tipos, `enum`, `required`,
-  `additionalProperties` y las restricciones `pattern`, `format`, `const`, `multipleOf`, de
-  longitud, de rango y de número de elementos. No sigue `$ref` ni `allOf`, ni compara objetos
-  anidados.
-- Solo ve el documento de descubrimiento: no compara cabeceras (`Deprecation`, `Sunset`,
-  `successor-version`), códigos de error, el orden por defecto ni el formato de los `id`, que
-  §5.5 también protege. Las cabeceras de una retirada las comprueba `restep-check`.
-- No comprueba que cada documento cumpla el borrador 6 por sí solo (gramática de nombres, que
-  `announced` exista, que una subcolección declare `parent`…): eso es de `restep-check`.
-- `--header` y `--language` valen para los dos documentos.
-- Un renombrado se ve como un campo, una colección o una relación que desaparece y otra nueva.
+- Schemas that are links are not downloaded: it only reports when the link changes.
+- Of the schemas it only compares the top-level properties, their types, `enum`, `required`,
+  `additionalProperties` and the `pattern`, `format`, `const` and `multipleOf` constraints, plus
+  length, range and item-count ones. It does not follow `$ref` or `allOf`, nor compare nested
+  objects.
+- It only sees the discovery document: it does not compare headers (`Deprecation`, `Sunset`,
+  `successor-version`), error codes, the default order or the format of `id`s, which §5.5 also
+  protects. `restep-check` checks the headers of a retirement.
+- It does not check that each document conforms to draft 6 on its own (name grammar, that
+  `announced` exists, that a subcollection declares `parent`…): that is `restep-check`'s job.
+- `--header` and `--language` apply to both documents.
+- A rename looks like a field, collection or relation that disappears plus a new one.
 
-## Dudas sobre la spec
+## Open questions about the spec
 
-El borrador 6 resolvió varias dudas del 5: dejar de declarar `methods` o un esquema es compatible
-(tabla de §5.5); dónde va cada aviso y qué `kind` hay (perfil, extensión, operador, valor,
-`count`, `max_limit`, inclusión, singleton, razón); que un aviso `field` arrastra filtros, órdenes
-e inclusiones; que los seis meses cuentan desde `announced`; y cómo se clasifican `count`, las
-acciones, los plazos y `max_limit`. Quedan estas:
+Draft 6 settled several questions from draft 5: no longer declaring `methods` or a schema is
+compatible (§5.5 table); where each notice goes and which `kind`s exist (profile, extension,
+operator, value, `count`, `max_limit`, include, singleton, reason); that a `field` notice carries
+filters, sorts and includes with it; that the six months count from `announced`; and how `count`,
+actions, retention periods and `max_limit` are classified. These remain:
 
-- **Versión de Restep con sufijo (§1.1).** Un borrador «puede diferir de forma incompatible» de
-  cualquier otro y de la versión publicada, pero §5.5 no clasifica el cambio de la versión que
-  declara el servidor. restep-diff lo trata como incompatible (`restep.prerelease`), también al
-  pasar de `1.0-draft.6` a `1.0`.
-- **Partes experimentales tras un cambio de versión (§1.2).** Tampoco está en §5.5: un cliente
-  deja de usarlas si no conoce el texto de la versión nueva. restep-diff lo marca como
-  incompatible (`restep.experimental`), aunque la versión menor suba.
-- **`collations` explícito con `"codepoint"`.** La tabla dice que «cualquier otra declaración» es
-  incompatible, pero declarar `"codepoint"` en un campo que ya era `"codepoint"` por omisión no
-  cambia nada. restep-diff no lo señala. Y quitar un campo de `collations` que era `"server"`
-  (pasa a `"codepoint"`) lo trata como `collation.named`, con la misma condición.
-- **Sin aviso posible.** Siguen sin `kind` `include_depth`, `batch.max_operations`, `events`, el
-  `sync` de una colección, un mapa de idioma (salvo con `field`), `inherit` (ídem) y el `parent`
-  de una subcolección: según el texto, quitarlos o bajarlos no se puede hacer nunca dentro de una
-  versión.
-- **Plazos por debajo del mínimo.** La tabla hace compatible bajar `idempotency.ttl` o
-  `sync.retention` «si el valor nuevo sigue cumpliendo el mínimo», pero no dice qué es si no lo
-  cumple; restep-diff lo trata como incompatible. Para `sync` el mínimo es un DEBERÍA (7 días).
-- **Esquemas que «describen, no prometen» (§4.3).** Si un esquema no promete, ¿quitar una
-  propiedad de `schemas.item` es quitar un campo? restep-diff lo trata como tal, porque es lo único
-  que el descubrimiento dice de los campos. Tampoco está claro si estrechar un tipo de salida
-  (quitar `null`) es incompatible; §5.5 solo dice «cambiar su tipo».
-- **Cambios que nadie clasifica:** cambiar `from` de una herencia, bajar la versión menor de
-  `restep`, el `status`. La tabla de reglas dice qué se ha decidido en cada caso.
-- **Destinos de una relación polimórfica.** Añadir una colección a `to` cuando ya era una lista no
-  está en la tabla: un cliente puede encontrarse un `type` que no conoce, y §3 solo pide tolerar
-  valores nuevos en las enumeraciones. restep-diff lo deja en `info` (`relation.to-added`); quitar
-  un destino, o pasar de un destino a una lista (el enlace gana `type`), es incompatible.
-- **El `path` de una relación.** §9 dice que la relación que lleva a una subcolección PUEDE llevar su
-  plantilla; restep-diff trata declararlo como `info` y quitarlo como incompatible, aunque ninguna
-  URL cambie de verdad.
+- **Restep version with a suffix (§1.1).** A draft "may differ incompatibly" from any other and
+  from the published version, but §5.5 does not classify a change in the version the server
+  declares. restep-diff treats it as breaking (`restep.prerelease`), also when going from
+  `1.0-draft.6` to `1.0`.
+- **Experimental parts after a version change (§1.2).** Not in §5.5 either: a client stops using
+  them if it does not know the text of the new version. restep-diff marks it as breaking
+  (`restep.experimental`), even when the minor version goes up.
+- **Explicit `collations` with `"codepoint"`.** The table says that "any other declaration" is
+  breaking, but declaring `"codepoint"` on a field that was already `"codepoint"` by default
+  changes nothing. restep-diff does not flag it. And removing a field from `collations` that was
+  `"server"` (it becomes `"codepoint"`) is treated as `collation.named`, with the same condition.
+- **No possible notice.** There is still no `kind` for `include_depth`, `batch.max_operations`,
+  `events`, a collection's `sync`, a language map (except via `field`), `inherit` (likewise) or a
+  subcollection's `parent`: going by the text, removing or lowering them can never be done within
+  a version.
+- **Periods below the minimum.** The table makes lowering `idempotency.ttl` or `sync.retention`
+  compatible "if the new value still meets the minimum", but does not say what it is if it does
+  not; restep-diff treats it as breaking. For `sync` the minimum is a SHOULD (7 days).
+- **Schemas that describe but do not promise (§4.3).** If a schema promises nothing, is removing a
+  property from `schemas.item` removing a field? restep-diff treats it as such, because it is the
+  only thing discovery says about fields. Nor is it clear whether narrowing an output type
+  (removing `null`) is breaking; §5.5 only says "changing its type".
+- **Changes nobody classifies:** changing the `from` of an inheritance, lowering the minor version
+  of `restep`, `status`. The rules table says what was decided in each case.
+- **Targets of a polymorphic relation.** Adding a collection to `to` when it was already a list is
+  not in the table: a client may find a `type` it does not know, and §3 only asks to tolerate new
+  values in enumerations. restep-diff leaves it as `info` (`relation.to-added`); removing a
+  target, or going from one target to a list (the link gains `type`), is breaking.
+- **A relation's `path`.** §9 says the relation that leads to a subcollection MAY carry its
+  template; restep-diff treats declaring it as `info` and removing it as breaking, even though no
+  URL really changes.
 
-## Código y avisos
+## Code and issues
 
-Código y avisos: <https://github.com/restep-spec/restep-diff>. Ese repositorio se genera desde la web de
-Restep, donde la herramienta se desarrolla junto a la [especificación](https://restep.wubytes.com/1/) y el servidor de
-referencia: `vendor/` y `schema/` son copias de la web para que las pruebas funcionen solas.
+Code and issues: <https://github.com/restep-spec/restep-diff>. That repository is generated from the Restep
+site, where the tool is developed alongside the [specification](https://restep.wubytes.com/1/) and the reference
+server: `vendor/` and `schema/` are copies from the site so the tests run on their own.
 
-Licencia MIT.
+MIT licensed.
