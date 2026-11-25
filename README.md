@@ -1,8 +1,9 @@
 # restep-diff
 
-Compares two [Restep 1](https://restep.wubytes.com/1/) discovery documents (§4.2) and classifies
-each change by the evolution rules of draft 6 of the specification: §5.5 and its table of
-changes, plus what §1.1, §1.2, §3, §4.2, §4.3, §5.1, §5.4, §5.9, §6, §7.1, §9, §10 and §11 add.
+Compares two [Restep 1](https://w3id.org/restep/1/) discovery documents (§4.2) and classifies
+each change by the evolution rules of draft 7 of the specification: §5.5 and its table of
+changes, plus what §1.1, §1.2, §3, §4.2, §4.3, §5.1, §5.4, §5.6, §5.9, §6, §7.1, §9, §10 and §11
+add.
 Use it to review a deployment before doing it, as a CI step, or to write the changelog. A single
 file, Node 18+, no dependencies.
 
@@ -72,146 +73,185 @@ a profile or an extension also retires the ones that need it (§1.2): a `profile
 
 Generated with `--rules --markdown`; `test.mjs` checks that it matches the code.
 
-<!-- reglas -->
-| Regla | Gravedad | Apartados | Qué detecta |
+<!-- rules -->
+| Rule | Severity | Sections | What it detects |
 |---|---|---|---|
-| `restep.minor-up` | compatible | [§1.1](https://restep.wubytes.com/es/1/#versiones-restep) | Sube la versión menor de Restep, sin sufijo en ninguna de las dos: «una versión menor solo añade» y «lo que cumple la 1.0 sigue cumpliendo la 1.1». |
-| `restep.minor-down` | info | [§1.1](https://restep.wubytes.com/es/1/#versiones-restep) | Baja la versión menor de Restep: la especificación no lo contempla; lo que desaparezca lo señalan las demás reglas. |
-| `restep.major` | breaking | [§1.1](https://restep.wubytes.com/es/1/#versiones-restep) | Cambia la versión mayor de Restep: «un cambio incompatible será Restep 2, con URI nuevas», y un cliente de Restep 1 NO DEBE tratar como suyo un documento de otra versión mayor. |
-| `restep.prerelease` | breaking | [§1.1](https://restep.wubytes.com/es/1/#versiones-restep) | Cambia la versión de Restep y una de las dos lleva sufijo (-draft.N o -rc.N): un borrador o un candidato puede diferir de forma incompatible de la versión publicada y de cualquier otro borrador, y el cliente NO DEBE suponer sus garantías. |
-| `restep.experimental` | breaking | [§1.2](https://restep.wubytes.com/es/1/#dependencias) | Cambia la versión de Restep y se siguen anunciando perfiles o extensiones experimentales: un cliente NO DEBE usarlos salvo bajo una versión cuyo texto de ellos implementa, así que el que implementaba el de la anterior deja de usarlos. |
-| `restep.invalid` | breaking | [§1.1](https://restep.wubytes.com/es/1/#versiones-restep) | El restep nuevo no sigue la gramática de §1.1 (mayor.menor[-draft.N\|-rc.N], sin ceros a la izquierda): un cliente de Restep 1 NO DEBE tratarlo como documento de descubrimiento. |
-| `restep.fixed` | info | [§1.1](https://restep.wubytes.com/es/1/#versiones-restep) | El restep viejo no seguía la gramática de §1.1 y el nuevo sí. |
-| `version.changed` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones) | Cambia la versión mayor de la API: «cada versión es una raíz de API distinta»; solo se crea por un cambio incompatible. |
-| `profile.added` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§1.2](https://restep.wubytes.com/es/1/#dependencias) | Se anuncia un perfil nuevo: «añadir perfiles o extensiones» es compatible. |
-| `profile.removed` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones) | Se deja de anunciar un perfil: «quitar […] un perfil» es incompatible; se retira con un aviso profile, o con el de un perfil que necesita (§5.5). |
-| `extension.added` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§11](https://restep.wubytes.com/es/1/#extensiones) | Se anuncia una extensión nueva: «añadir perfiles o extensiones» es compatible. |
-| `extension.removed` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§11](https://restep.wubytes.com/es/1/#extensiones) | Se deja de anunciar una extensión: «quitar […] una extensión» es incompatible; se retira con un aviso extension (§5.5). |
-| `batch.path` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§11.2](https://restep.wubytes.com/es/1/#batch) | Cambia batch.path: «cambiar […] las URL de los recursos» es incompatible. |
-| `batch.max-operations.lower` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§11.2](https://restep.wubytes.com/es/1/#batch) | Baja batch.max_operations: un lote que antes cabía da 413, «endurecer la validación» es incompatible. |
-| `batch.max-operations.higher` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§11.2](https://restep.wubytes.com/es/1/#batch) | Sube batch.max_operations: se acepta todo lo que antes se aceptaba. |
-| `idempotency.ttl-higher` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§7.1](https://restep.wubytes.com/es/1/#idempotencia) | Sube idempotency.ttl: compatible según la tabla de §5.5. |
-| `idempotency.ttl-lower` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§7.1](https://restep.wubytes.com/es/1/#idempotencia) | Baja idempotency.ttl sin bajar de 86400 s: compatible si el servidor mantiene el plazo anterior para las claves ya guardadas (tabla de §5.5), cosa que el documento no dice. |
-| `idempotency.ttl-too-low` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§7.1](https://restep.wubytes.com/es/1/#idempotencia) | Baja idempotency.ttl por debajo de 86400 s: no cumple el mínimo de §7.1, y la tabla de §5.5 solo lo hace compatible si lo cumple. |
-| `idempotency.ttl-declaration` | info | [§7.1](https://restep.wubytes.com/es/1/#idempotencia) | Se empieza o se deja de declarar idempotency.ttl: DEBERÍA declararse (§7.1); el mínimo de 24 horas vale igual. |
-| `idempotency.anonymous-refused` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§7.1](https://restep.wubytes.com/es/1/#idempotencia) | idempotency.anonymous pasa a false: «empezar a rechazar Idempotency-Key sin credenciales» endurece la validación, y es incompatible. |
-| `idempotency.anonymous-accepted` | compatible | [§7.1](https://restep.wubytes.com/es/1/#idempotencia) | idempotency.anonymous deja de ser false: se aceptan claves sin credenciales que antes daban 400. |
-| `events.added` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§10](https://restep.wubytes.com/es/1/#sync) | Se declara events: añadir un recurso es compatible. |
-| `events.changed` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§10](https://restep.wubytes.com/es/1/#sync) | Cambia o desaparece events: «quitar […] los events de la API» y «cambiar […] las URL de los recursos» son incompatibles. |
-| `status.changed` | info | [§4.4](https://restep.wubytes.com/es/1/#salud) | Cambia el enlace status: el estado del servicio no es un recurso de la API (§4.4). |
-| `reasons.declared` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§5.4](https://restep.wubytes.com/es/1/#errores) | Se declara reasons: «declarar reasons o añadirle razones» es compatible. |
-| `reasons.undeclared` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§5.4](https://restep.wubytes.com/es/1/#errores) | Se deja de declarar reasons: «quitar reasons una vez declarado» es incompatible. |
-| `reason.added` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§5.4](https://restep.wubytes.com/es/1/#errores) | Razón nueva en reasons: «añadirle razones» es compatible. |
-| `reason.removed` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§5.4](https://restep.wubytes.com/es/1/#errores) | Desaparece una razón de reasons: «quitar una razón» es incompatible; se retira con un aviso reason (§5.5). |
-| `reason.code` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§5.4](https://restep.wubytes.com/es/1/#errores) | Cambia el code de una razón: «cambiar el code de una razón» es incompatible. |
-| `collection.added` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones) | Colección nueva: «añadir […] colecciones» es compatible. |
-| `collection.removed` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones) | Desaparece una colección: «quitar […] una colección» es incompatible. |
-| `collection.path` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones) | Cambia el path de una colección: «cambiar […] las URL de los recursos» es incompatible. |
-| `collection.parent` | breaking | [§4.2](https://restep.wubytes.com/es/1/#descubrimiento), [§5.5](https://restep.wubytes.com/es/1/#versiones) | Cambia o desaparece el parent de una subcolección: cuelga de otra colección, o deja de decir de cuál. |
-| `collection.parent-declared` | info | [§4.2](https://restep.wubytes.com/es/1/#descubrimiento) | Una subcolección declara parent con el mismo path: el borrador 6 lo exige a toda subcolección; no cambia ninguna URL. |
-| `description.changed` | info | [§4.3](https://restep.wubytes.com/es/1/#describir), [§5.6](https://restep.wubytes.com/es/1/#idioma) | Cambia un description: es texto para personas, que incluso puede variar con Accept-Language (§5.6). |
-| `singleton.added` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§5.9](https://restep.wubytes.com/es/1/#singletons) | Singleton nuevo: «añadir […] singletons» es compatible. |
-| `singleton.removed` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§5.9](https://restep.wubytes.com/es/1/#singletons) | Desaparece un singleton, o pasa a tener una plantilla o parent que obligan al cliente a ignorarlo (§5.9): «quitar […] un singleton» es incompatible. |
-| `singleton.path` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§5.9](https://restep.wubytes.com/es/1/#singletons) | Cambia el path de un singleton: «cambiar […] las URL de los recursos» es incompatible. |
-| `method.added` | compatible | [§4.3](https://restep.wubytes.com/es/1/#describir), [§5.5](https://restep.wubytes.com/es/1/#versiones) | Se admite un método más: la lista es exacta (§4.3) y lo nuevo lo ignora el cliente que no lo conoce. |
-| `method.removed` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§4.3](https://restep.wubytes.com/es/1/#describir) | Se quita un método declarado: «quitar […] un método» es incompatible. |
-| `methods.declared` | info | [§4.3](https://restep.wubytes.com/es/1/#describir) | Se empieza a declarar methods o item_methods: antes «no se sabe», ahora la lista es exacta. |
-| `methods.undeclared` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§4.3](https://restep.wubytes.com/es/1/#describir) | Se deja de declarar methods o item_methods: compatible según la tabla de §5.5 si la API se comporta igual, porque sin la lista «no se sabe» (§4.3). |
-| `id-from.either` | info | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§5.1](https://restep.wubytes.com/es/1/#recursos) | id_from pasa de sin declarar o "server" a "either": compatible solo si el servidor distingue todos los id que ha tenido la colección (tabla de §5.5); el documento no lo dice. |
-| `id-from.changed` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§5.1](https://restep.wubytes.com/es/1/#recursos) | Cualquier otro cambio de id_from: incompatible según la tabla de §5.5. |
-| `schema.added` | info | [§4.3](https://restep.wubytes.com/es/1/#describir) | Se declara un esquema que antes no estaba: describe, no promete (§4.3). |
-| `schema.removed` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§4.3](https://restep.wubytes.com/es/1/#describir) | Se deja de declarar un esquema: compatible según la tabla de §5.5 si la API se comporta igual; no se pueden comparar sus campos. |
-| `schema.link` | info | [§4.3](https://restep.wubytes.com/es/1/#describir) | Cambia un esquema que es un enlace (o pasa a serlo): restep-diff no descarga los esquemas, así que no compara sus campos. |
-| `field.added` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§3](https://restep.wubytes.com/es/1/#datos) | Campo nuevo en la representación: «añadir campos a una representación» es compatible. |
-| `field.removed` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones) | Desaparece un campo de la representación: «quitar o renombrar un campo» es incompatible. |
-| `field.type` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones) | Cambia el tipo de un campo de la representación: «cambiar su tipo» es incompatible. |
-| `field.optional` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones) | Un campo que siempre venía deja de ser obligatorio en el esquema item: puede faltar, como si se quitara. |
-| `field.enum-added` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§3](https://restep.wubytes.com/es/1/#datos) | Valor de enumeración nuevo en una representación: «añadir […] valores de enumeración» es compatible; el cliente los tolera (§3). |
-| `field.enum-removed` | info | [§5.5](https://restep.wubytes.com/es/1/#versiones) | Una representación deja de usar un valor de enumeración: §5.5 no lo clasifica. |
-| `input.added-optional` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones) | Campo de entrada nuevo y opcional: añadir parámetros opcionales es compatible. |
-| `input.added-required` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones) | Campo de entrada nuevo y obligatorio: «hacer obligatorio un campo de entrada […] que no lo era» es incompatible. |
-| `input.now-required` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones) | Un campo de entrada pasa a ser obligatorio: es incompatible. |
-| `input.now-optional` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones) | Un campo de entrada deja de ser obligatorio: se acepta todo lo que antes se aceptaba. |
-| `input.removed` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones) | Desaparece un campo de entrada: «quitar o renombrar un campo» es incompatible. |
-| `input.type-narrowed` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones) | Cambia o se estrecha el tipo de un campo de entrada: «cambiar su tipo» y «endurecer la validación» son incompatibles. |
-| `input.type-widened` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones) | Un campo de entrada admite más tipos: se acepta todo lo que antes se aceptaba. |
-| `input.enum-removed` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones) | Un campo de entrada deja de aceptar un valor de enumeración: «endurecer la validación» es incompatible. |
-| `input.enum-added` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones) | Un campo de entrada acepta un valor de enumeración nuevo: «añadir […] valores de enumeración» es compatible. |
-| `input.constraint-tightened` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones) | Una restricción de un campo de entrada se endurece o aparece (pattern, format, longitudes, rangos, enum): «endurecer la validación» es incompatible. |
-| `input.constraint-relaxed` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones) | Una restricción de un campo de entrada se relaja o desaparece: se acepta todo lo que antes se aceptaba. |
-| `input.default-added` | info | [§4.3](https://restep.wubytes.com/es/1/#describir), [§5.5](https://restep.wubytes.com/es/1/#versiones) | Un campo del POST pasa a tener default: el alta que no lo trae ya no lo deja vacío, sino con ese valor (§4.3). §5.5 no lo clasifica. |
-| `input.default-changed` | breaking | [§4.3](https://restep.wubytes.com/es/1/#describir), [§5.5](https://restep.wubytes.com/es/1/#versiones) | Cambia el default de un campo del POST: el mismo alta sin ese campo guarda ahora otro valor (§4.3), un cambio de significado que §5.5 hace incompatible. |
-| `input.default-removed` | breaking | [§4.3](https://restep.wubytes.com/es/1/#describir), [§5.5](https://restep.wubytes.com/es/1/#versiones) | Un campo del POST deja de tener default: el alta que no lo trae lo deja vacío en vez de darle el valor que daba (§4.3). |
-| `input.closed` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§4.3](https://restep.wubytes.com/es/1/#describir) | El cuerpo pasa a additionalProperties: false: rechaza miembros que antes aceptaba («endurecer la validación»). |
-| `input.opened` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§4.3](https://restep.wubytes.com/es/1/#describir) | El cuerpo deja de ser cerrado: se acepta todo lo que antes se aceptaba. |
-| `filter.added` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§6.1](https://restep.wubytes.com/es/1/#filtros) | Filtro nuevo: «admitir filtros […] nuevos» es compatible. |
-| `filter.removed` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§6.1](https://restep.wubytes.com/es/1/#filtros), [§5.3](https://restep.wubytes.com/es/1/#reservados) | Desaparece un filtro: «quitar un filtro» es incompatible; ahora da unsupported_parameter. Se retira con un aviso filter o field. |
-| `filter.op-added` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§6.1](https://restep.wubytes.com/es/1/#filtros) | Operador nuevo en un filtro: admitir filtros nuevos es compatible. |
-| `filter.op-removed` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§6.1](https://restep.wubytes.com/es/1/#filtros), [§5.3](https://restep.wubytes.com/es/1/#reservados) | Un filtro pierde un operador: «quitar un […] operador» es incompatible; se retira con un aviso operator. |
-| `filter.type` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§6.1](https://restep.wubytes.com/es/1/#filtros) | Cambia el tipo de un filtro: el servidor compara según el tipo declarado (§6.1); cambiar el tipo es incompatible. |
-| `filter.values-added` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§6.1](https://restep.wubytes.com/es/1/#filtros) | Un filtro enum admite un valor nuevo: añadir valores de enumeración es compatible. |
-| `filter.values-removed` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§6.1](https://restep.wubytes.com/es/1/#filtros) | Un filtro enum deja de admitir un valor: «quitar […] un valor de una enumeración declarada» es incompatible; se retira con un aviso value. |
-| `collation.named` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§6.1](https://restep.wubytes.com/es/1/#filtros) | collations pasa de "server" a otro valor: compatible si nombra la igualdad y el orden que ya usaba (tabla de §5.5), cosa que restep-diff no puede comprobar. |
-| `collation.changed` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§6.1](https://restep.wubytes.com/es/1/#filtros) | Cualquier otra declaración o cambio de collations en un campo cuyo filtro u orden ya existía: «cambiar […] la colación de un campo» es incompatible. |
-| `named-filter.added` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§6.1](https://restep.wubytes.com/es/1/#filtros) | Filtro con nombre nuevo: «admitir filtros […] nuevos» es compatible. |
-| `named-filter.removed` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§6.1](https://restep.wubytes.com/es/1/#filtros), [§5.3](https://restep.wubytes.com/es/1/#reservados) | Desaparece un filtro con nombre: quitar un filtro (también uno con nombre) es incompatible; ahora da unsupported_parameter. |
-| `named-filter.type` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§6.1](https://restep.wubytes.com/es/1/#filtros) | Cambia el tipo de un filtro con nombre, o pasa de interruptor a llevar valor o al revés: lo que antes se aceptaba da invalid_parameter. |
-| `named-filter.values-added` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§6.1](https://restep.wubytes.com/es/1/#filtros) | Un filtro con nombre enum admite un valor nuevo: añadir valores de enumeración es compatible. |
-| `named-filter.values-removed` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§6.1](https://restep.wubytes.com/es/1/#filtros) | Un filtro con nombre enum deja de admitir un valor: ahora da invalid_parameter, «endurecer la validación» es incompatible. |
-| `named-filter.description` | info | [§6.1](https://restep.wubytes.com/es/1/#filtros) | Cambia la descripción de un filtro con nombre, que es lo que dice qué elementos devuelve: si cambia lo que devuelve, el cambio es incompatible aunque el descubrimiento no lo muestre. |
-| `sort.added` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§6.2](https://restep.wubytes.com/es/1/#orden) | Campo de orden nuevo: «admitir […] órdenes […] nuevos» es compatible. |
-| `sort.removed` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§6.2](https://restep.wubytes.com/es/1/#orden) | Desaparece un campo de orden: «quitar […] una clave de orden» es incompatible; ahora da unsupported_parameter. |
-| `max-limit.lower` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§6.4](https://restep.wubytes.com/es/1/#paginacion) | Baja max_limit: se retira con un aviso max_limit que lleve en value el límite nuevo (tabla de §5.5). |
-| `max-limit.higher` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§6.4](https://restep.wubytes.com/es/1/#paginacion) | Sube max_limit: compatible según la tabla de §5.5. |
-| `max-limit.added` | compatible | [§6.4](https://restep.wubytes.com/es/1/#paginacion) | Se empieza a declarar max_limit: limit pasa a aceptarse, una capacidad nueva. |
-| `max-limit.removed` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§6.4](https://restep.wubytes.com/es/1/#paginacion) | Se deja de declarar max_limit: incompatible según la tabla de §5.5, porque sin él limit no se acepta (§6.4). |
-| `count.added` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§6.5](https://restep.wubytes.com/es/1/#recuento) | Se declara count: una capacidad nueva es compatible. |
-| `count.removed` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§6.5](https://restep.wubytes.com/es/1/#recuento) | Se deja de declarar count: «quitar […] un recuento» es incompatible; se retira con un aviso count sin value. |
-| `count.estimated` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§6.5](https://restep.wubytes.com/es/1/#recuento) | count pasa de exact a estimated: se retira con un aviso count que lleve "estimated" en value (tabla de §5.5). |
-| `count.exact` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§6.5](https://restep.wubytes.com/es/1/#recuento) | count pasa de estimated a exact: compatible según la tabla de §5.5. |
-| `relation.added` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§9](https://restep.wubytes.com/es/1/#relations) | Relación nueva: añadir campos es compatible. |
-| `relation.removed` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§9](https://restep.wubytes.com/es/1/#relations) | Desaparece una relación: «quitar […] una relación» es incompatible. |
-| `relation.to` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§9](https://restep.wubytes.com/es/1/#relations) | Cambia la colección de destino de una relación, pierde uno de sus destinos o pasa de uno a varios o al revés (el enlace gana o pierde type, §3): «cambiar su significado» es incompatible. |
-| `relation.to-added` | info | [§9](https://restep.wubytes.com/es/1/#relations), [§3](https://restep.wubytes.com/es/1/#datos) | Una relación que ya iba a varias colecciones gana un destino: sus enlaces pueden traer un type nuevo. §5.5 no lo clasifica; §3 pide tolerar valores nuevos solo en las enumeraciones. |
-| `relation.many` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§3](https://restep.wubytes.com/es/1/#datos) | Una relación pasa de a uno a a muchos o al revés: el campo cambia de tipo (objeto o lista, §3). |
-| `relation.include-added` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§9](https://restep.wubytes.com/es/1/#relations) | Una relación se puede expandir: «admitir […] inclusiones nuevas» es compatible. |
-| `relation.include-removed` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§9](https://restep.wubytes.com/es/1/#relations) | Una relación deja de poder expandirse: «quitar […] una inclusión» es incompatible; se retira con un aviso include. |
-| `relation.path` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§9](https://restep.wubytes.com/es/1/#relations) | Cambia o desaparece el path de una relación: «cambiar […] las URL de los recursos» es incompatible. |
-| `relation.path-declared` | info | [§9](https://restep.wubytes.com/es/1/#relations) | Una relación declara path: la plantilla de la subcolección a la que lleva (§9). No cambia ninguna URL. |
-| `include-depth.lower` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§9](https://restep.wubytes.com/es/1/#relations) | Baja include_depth: una ruta que antes valía da unsupported_parameter. |
-| `include-depth.higher` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§9](https://restep.wubytes.com/es/1/#relations) | Sube include_depth: se aceptan más inclusiones. |
-| `sync.added` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§10](https://restep.wubytes.com/es/1/#sync) | La colección pasa a estar sincronizada (declara sync con el perfil anunciado): una capacidad nueva es compatible. |
-| `sync.removed` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§10](https://restep.wubytes.com/es/1/#sync) | La colección deja de declarar sync: «quitar […] el sync de una colección» es incompatible, y :changes da ahora 404. |
-| `sync.retention-higher` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§10](https://restep.wubytes.com/es/1/#sync) | Sube sync.retention: compatible según la tabla de §5.5. |
-| `sync.retention-lower` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§10](https://restep.wubytes.com/es/1/#sync) | Baja sync.retention sin bajar de 7 días: compatible si el servidor mantiene el plazo anterior para los estados ya emitidos (tabla de §5.5), cosa que el documento no dice. |
-| `sync.retention-too-low` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§10](https://restep.wubytes.com/es/1/#sync) | Baja sync.retention por debajo de 7 días, el mínimo de §10: la tabla de §5.5 solo lo hace compatible si lo cumple. |
-| `sync.retention-declaration` | info | [§10](https://restep.wubytes.com/es/1/#sync) | Se empieza o se deja de declarar sync.retention: DEBERÍA declararse (§10). |
-| `action.added` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§11.1](https://restep.wubytes.com/es/1/#actions) | Acción nueva: «añadir […] acciones» es compatible. |
-| `action.removed` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§11.1](https://restep.wubytes.com/es/1/#actions) | Desaparece una acción: «quitar […] una acción» es incompatible. |
-| `action.on` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§11.1](https://restep.wubytes.com/es/1/#actions) | Una acción pasa de item a collection o al revés: cambia su URL. |
-| `action.method` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§11.1](https://restep.wubytes.com/es/1/#actions) | Una acción cambia de método (POST o GET): se quita un método. |
-| `action.weaker` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§11.1](https://restep.wubytes.com/es/1/#actions) | Una acción deja de ser safe o idempotent: incompatible según la tabla de §5.5; se retira la acción y se declara otro nombre. |
-| `action.stronger` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§11.1](https://restep.wubytes.com/es/1/#actions) | Una acción pasa a ser safe o idempotent: compatible según la tabla de §5.5. |
-| `language-map.added` | compatible | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§3](https://restep.wubytes.com/es/1/#datos) | Campo nuevo que es un mapa de idioma: añadir campos es compatible. |
-| `language-map.retyped` | breaking | [§3](https://restep.wubytes.com/es/1/#datos), [§5.5](https://restep.wubytes.com/es/1/#versiones) | Un campo que ya existía pasa a ser mapa de idioma: cambia su tipo. |
-| `language-map.removed` | breaking | [§3](https://restep.wubytes.com/es/1/#datos), [§5.5](https://restep.wubytes.com/es/1/#versiones) | Un campo deja de ser mapa de idioma: «el tipo de un mapa de idioma NO DEBE cambiar». |
-| `inherit.added` | compatible | [§11.6](https://restep.wubytes.com/es/1/#herencia) | Herencia en un dato nuevo o en un campo de solo lectura: «añadir herencia a un dato nuevo, o a un campo que ya era de solo lectura, es compatible». |
-| `inherit.writable` | breaking | [§11.6](https://restep.wubytes.com/es/1/#herencia), [§5.5](https://restep.wubytes.com/es/1/#versiones) | Herencia en un campo que se podía escribir: «convertir en efectivo un campo que hasta ahora se podía escribir no lo es». |
-| `inherit.unknown` | info | [§11.6](https://restep.wubytes.com/es/1/#herencia) | Herencia en un campo que ya existía, sin esquemas de entrada para saber si se podía escribir: revísalo (§11.6, Evolución). |
-| `inherit.removed` | breaking | [§11.6](https://restep.wubytes.com/es/1/#herencia), [§5.5](https://restep.wubytes.com/es/1/#versiones) | Desaparece una declaración inherit: el campo propio deja de existir o cambia de significado. |
-| `inherit.own` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§11.6](https://restep.wubytes.com/es/1/#herencia) | Cambia el nombre del campo propio: «quitar o renombrar un campo» es incompatible. |
-| `inherit.from` | info | [§11.6](https://restep.wubytes.com/es/1/#herencia) | Cambia la cadena from de una herencia: cambia de dónde sale el valor, no su tipo. |
-| `inherit.default-removed` | breaking | [§11.6](https://restep.wubytes.com/es/1/#herencia), [§5.5](https://restep.wubytes.com/es/1/#versiones) | La herencia deja de tener valor por defecto: el campo efectivo, que nunca quedaba vacío, ahora puede quedarse sin valor. |
-| `inherit.default-added` | compatible | [§11.6](https://restep.wubytes.com/es/1/#herencia) | La herencia pasa a tener valor por defecto: el efectivo ya no queda vacío. |
-| `deprecation.announced` | deprecation | [§5.5](https://restep.wubytes.com/es/1/#versiones) | Aviso de retirada nuevo en deprecations: las respuestas que usan lo retirado DEBEN llevar Deprecation. |
-| `deprecation.short-notice` | deprecation | [§5.5](https://restep.wubytes.com/es/1/#versiones) | Aviso de retirada con menos de seis meses entre su announced (o --date, si no lo trae) y su sunset: «DEBERÍAN pasar al menos seis meses». |
-| `deprecation.sunset-changed` | deprecation | [§5.5](https://restep.wubytes.com/es/1/#versiones) | Cambia la fecha de sunset de un aviso de retirada. |
-| `deprecation.announced-changed` | breaking | [§5.5](https://restep.wubytes.com/es/1/#versiones) | Cambia el announced de un aviso de retirada: «NO DEBE cambiar después». |
-| `deprecation.unknown-kind` | info | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§4.2](https://restep.wubytes.com/es/1/#descubrimiento) | Aviso nuevo con un kind que no existe en ese sitio (raíz, colección o singleton): el cliente NO DEBE usarlo, y restep-diff tampoco lo tiene en cuenta. |
-| `deprecation.withdrawn` | info | [§5.5](https://restep.wubytes.com/es/1/#versiones) | Desaparece un aviso de retirada y lo avisado sigue ahí: se da marcha atrás. |
-| `deprecation.retired` | deprecation | [§5.5](https://restep.wubytes.com/es/1/#versiones), [§12](https://restep.wubytes.com/es/1/#conformidad) | Desaparece algo anunciado en deprecations cuyo sunset ya pasó: es la retirada que permite §5.5. |
-| `member.changed` | info | [§4.2](https://restep.wubytes.com/es/1/#descubrimiento) | Cambia otro miembro del descubrimiento que restep-diff no clasifica. |
-<!-- /reglas -->
+| `restep.minor-up` | compatible | [§1.1](https://w3id.org/restep/1/#restep-versions) | Restep’s minor version goes up, with no suffix on either side: “a minor version only adds”, and what conforms to 1.0 still conforms to 1.1. |
+| `restep.minor-down` | info | [§1.1](https://w3id.org/restep/1/#restep-versions) | Restep’s minor version goes down: the specification does not cover it; the other rules flag whatever disappears. |
+| `restep.major` | breaking | [§1.1](https://w3id.org/restep/1/#restep-versions) | Restep’s major version changes: “a breaking change will be Restep 2, with new URIs”, and a Restep 1 client MUST NOT treat a document of another major version as its own. |
+| `restep.prerelease` | breaking | [§1.1](https://w3id.org/restep/1/#restep-versions) | Restep’s version changes and one of the two carries a suffix (-draft.N or -rc.N): a draft or a candidate may differ incompatibly from the published version and from any other draft, and the client MUST NOT assume its guarantees. |
+| `restep.experimental` | breaking | [§1.2](https://w3id.org/restep/1/#dependencies) | Restep’s version changes and experimental profiles or extensions are still announced: a client MUST NOT use them except under a version whose text of them it implements, so one that implemented the previous text stops using them. |
+| `restep.invalid` | breaking | [§1.1](https://w3id.org/restep/1/#restep-versions) | The new restep does not follow the grammar of §1.1 (major.minor[-draft.N\|-rc.N], no leading zeros): a Restep 1 client MUST NOT treat it as a discovery document. |
+| `restep.fixed` | info | [§1.1](https://w3id.org/restep/1/#restep-versions) | The old restep did not follow the grammar of §1.1 and the new one does. |
+| `version.changed` | breaking | [§5.5](https://w3id.org/restep/1/#versions) | The API’s major version changes: “each version is a separate API root”, only created for a breaking change. |
+| `profile.added` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§1.2](https://w3id.org/restep/1/#dependencies) | A new profile is announced: “adding profiles or extensions” is compatible. |
+| `profile.removed` | breaking | [§5.5](https://w3id.org/restep/1/#versions) | A profile is no longer announced: “removing […] a profile” is breaking; it is retired with a profile notice, or with that of a profile it needs (§5.5). |
+| `extension.added` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§11](https://w3id.org/restep/1/#extensions) | A new extension is announced: “adding profiles or extensions” is compatible. |
+| `extension.removed` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§11](https://w3id.org/restep/1/#extensions) | An extension is no longer announced: “removing […] an extension” is breaking; it is retired with an extension notice (§5.5). |
+| `batch.path` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§11.2](https://w3id.org/restep/1/#batch) | batch.path changes: “changing […] the URLs of resources” is breaking. |
+| `batch.max-operations.lower` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§11.2](https://w3id.org/restep/1/#batch) | batch.max_operations goes down: a batch that used to fit now gets 413, and “tightening validation” is breaking. |
+| `batch.max-operations.higher` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§11.2](https://w3id.org/restep/1/#batch) | batch.max_operations goes up: everything accepted before is still accepted. |
+| `idempotency.ttl-higher` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§7.1](https://w3id.org/restep/1/#idempotency) | idempotency.ttl goes up: compatible according to the table in §5.5. |
+| `idempotency.ttl-lower` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§7.1](https://w3id.org/restep/1/#idempotency) | idempotency.ttl goes down, not below 86400 s: compatible if the server keeps the old period for keys already stored (table in §5.5), which the document does not say. |
+| `idempotency.ttl-too-low` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§7.1](https://w3id.org/restep/1/#idempotency) | idempotency.ttl goes below 86400 s: it misses the minimum of §7.1, and the table in §5.5 only makes it compatible if it meets it. |
+| `idempotency.ttl-declaration` | info | [§7.1](https://w3id.org/restep/1/#idempotency) | idempotency.ttl starts or stops being declared: it SHOULD be declared (§7.1); the 24-hour minimum applies either way. |
+| `idempotency.anonymous-refused` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§7.1](https://w3id.org/restep/1/#idempotency) | idempotency.anonymous becomes false: “starting to refuse Idempotency-Key without credentials” tightens validation, and is breaking. |
+| `idempotency.anonymous-accepted` | compatible | [§7.1](https://w3id.org/restep/1/#idempotency) | idempotency.anonymous stops being false: keys without credentials that used to get 400 are now accepted. |
+| `events.added` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§10](https://w3id.org/restep/1/#sync) | events is declared: adding a resource is compatible. |
+| `events.changed` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§10](https://w3id.org/restep/1/#sync) | events changes or disappears: “removing […] the API’s events” and “changing […] the URLs of resources” are breaking. |
+| `default-language.changed` | breaking | [§5.6](https://w3id.org/restep/1/#language), [§5.5](https://w3id.org/restep/1/#versions) | default_language changes: the default language is “fixed for the API”, and the same request without a matching Accept-Language now gets its texts and localized fields in another language. |
+| `default-language.declared` | info | [§5.6](https://w3id.org/restep/1/#language) | default_language starts or stops being declared: an API with localized fields MUST declare it (§5.6); what the server does does not change. |
+| `status.changed` | info | [§4.4](https://w3id.org/restep/1/#health) | The status link changes: the service status is not an API resource (§4.4). |
+| `reasons.declared` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§5.4](https://w3id.org/restep/1/#errors) | reasons is declared: “declaring reasons or adding reasons to it” is compatible. |
+| `reasons.undeclared` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§5.4](https://w3id.org/restep/1/#errors) | reasons stops being declared: “removing reasons once declared” is breaking. |
+| `reason.added` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§5.4](https://w3id.org/restep/1/#errors) | New reason in reasons: “adding reasons to it” is compatible. |
+| `reason.removed` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§5.4](https://w3id.org/restep/1/#errors) | A reason disappears from reasons: “removing a reason” is breaking; it is retired with a reason notice (§5.5). |
+| `reason.code` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§5.4](https://w3id.org/restep/1/#errors) | A reason’s code changes: “changing the code of a reason” is breaking. |
+| `collection.added` | compatible | [§5.5](https://w3id.org/restep/1/#versions) | New collection: “adding […] collections” is compatible. |
+| `collection.removed` | breaking | [§5.5](https://w3id.org/restep/1/#versions) | A collection disappears: “removing […] a collection” is breaking. |
+| `collection.path` | breaking | [§5.5](https://w3id.org/restep/1/#versions) | A collection’s path changes: “changing […] the URLs of resources” is breaking. |
+| `collection.parent` | breaking | [§4.2](https://w3id.org/restep/1/#discovery), [§5.5](https://w3id.org/restep/1/#versions) | A subcollection’s parent changes or disappears: it hangs from another collection, or stops saying which. |
+| `collection.parent-declared` | info | [§4.2](https://w3id.org/restep/1/#discovery) | A subcollection declares parent with the same path: it is required of every subcollection; no URL changes. |
+| `description.changed` | info | [§4.3](https://w3id.org/restep/1/#describing), [§5.6](https://w3id.org/restep/1/#language) | A description changes: it is text for people, and may even vary with Accept-Language (§5.6). |
+| `singleton.added` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§5.9](https://w3id.org/restep/1/#singletons) | New singleton: “adding […] singletons” is compatible. |
+| `singleton.removed` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§5.9](https://w3id.org/restep/1/#singletons) | A singleton disappears, or its path becomes a template without parent, or its parent names nothing in the document, which makes clients ignore it (§5.9): “removing […] a singleton” is breaking. |
+| `singleton.parent` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§5.9](https://w3id.org/restep/1/#singletons) | A singleton’s parent changes: it hangs from another collection or singleton, and its URLs change. |
+| `singleton.path` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§5.9](https://w3id.org/restep/1/#singletons) | A singleton’s path changes: “changing […] the URLs of resources” is breaking. |
+| `method.added` | compatible | [§4.3](https://w3id.org/restep/1/#describing), [§5.5](https://w3id.org/restep/1/#versions) | One more method is supported: the list is exact (§4.3), and a client that does not know it ignores it. |
+| `method.removed` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§4.3](https://w3id.org/restep/1/#describing) | A declared method is removed: “removing […] a method” is breaking. |
+| `methods.declared` | info | [§4.3](https://w3id.org/restep/1/#describing) | methods or item_methods starts being declared: before it was “unknown”, now the list is exact. |
+| `methods.undeclared` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§4.3](https://w3id.org/restep/1/#describing) | methods or item_methods stops being declared: compatible according to the table in §5.5 if the API behaves the same, because without the list it is “unknown” (§4.3). |
+| `id-from.either` | info | [§5.5](https://w3id.org/restep/1/#versions), [§5.1](https://w3id.org/restep/1/#resources) | id_from goes from undeclared or "server" to "either": compatible only if the server tells apart every id the collection has had (table in §5.5); the document does not say. |
+| `id-from.changed` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§5.1](https://w3id.org/restep/1/#resources) | Any other change of id_from: breaking according to the table in §5.5. |
+| `collection.reusable-ids` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§5.1](https://w3id.org/restep/1/#resources) | reusable_ids is declared on an existing collection, or withdrawn: the same request gets another status (409 or 201), breaking according to the table in §5.5. |
+| `collection.upsert` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§5.1](https://w3id.org/restep/1/#resources) | upsert is declared on an existing collection, or withdrawn: the same PATCH gets another status (404 or 201), breaking according to the table in §5.5. |
+| `upload.added` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§5.1](https://w3id.org/restep/1/#resources) | The collection declares upload: a POST may now carry a file, a new capability. |
+| `upload.removed` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§5.1](https://w3id.org/restep/1/#resources) | The collection no longer declares upload: a file that created an item now gets 415 (“tightening validation”). |
+| `upload.tightened` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§5.1](https://w3id.org/restep/1/#resources) | upload accepts less: a media type no longer admitted (by the ranges, wildcards such as image/* and */* included), max_size lowered or newly declared, or multipart withdrawn (“tightening validation”). |
+| `upload.relaxed` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§5.1](https://w3id.org/restep/1/#resources) | upload accepts more: a media type newly admitted (by the ranges, wildcards included), max_size raised or no longer declared, or multipart declared. |
+| `upload.create-added` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§5.1](https://w3id.org/restep/1/#resources) | A collection that keeps upload declares schemas.create: it now also creates items from JSON, a new capability (§5.1: create announces creation from JSON). |
+| `upload.create-removed` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§5.1](https://w3id.org/restep/1/#resources) | A collection that keeps upload stops declaring schemas.create: it no longer creates items from JSON, so a JSON POST that created an item gets 415 (§5.1, §5.5). |
+| `upload.create-json` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§5.1](https://w3id.org/restep/1/#resources) | A collection whose upload admits application/json (also by a wildcard, application/* or */*) declares schemas.create: a JSON POST, which was a file, now always creates an item from its fields, and a JSON file only travels as the file part of multipart/form-data (§5.1). The same request changes meaning. |
+| `effects.added` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§11.1](https://w3id.org/restep/1/#actions), [§4.3](https://w3id.org/restep/1/#describing) | An operation gains an effect (a safe action that declares charges, an unsafe one that stops declaring them and so counts all three): “adding an effect to an operation” is compatible. |
+| `effects.removed` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§11.1](https://w3id.org/restep/1/#actions), [§4.3](https://w3id.org/restep/1/#describing) | An operation loses an effect: an unsafe one that declares [] or only some where none was declared (all three), or a safe one that drops charges: “removing an effect” is breaking, since a client would stop asking before it. |
+| `schema.added` | info | [§4.3](https://w3id.org/restep/1/#describing) | A schema that was not there is declared: it describes, it does not promise (§4.3). |
+| `schema.removed` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§4.3](https://w3id.org/restep/1/#describing) | A schema stops being declared: compatible according to the table in §5.5 if the API behaves the same; its fields cannot be compared. |
+| `schema.link` | info | [§4.3](https://w3id.org/restep/1/#describing) | A schema that is a link changes (or becomes one): restep-diff does not download schemas, so it does not compare their fields. |
+| `field.added` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§3](https://w3id.org/restep/1/#data) | New field in the representation: “adding fields to a representation” is compatible. |
+| `field.removed` | breaking | [§5.5](https://w3id.org/restep/1/#versions) | A field disappears from the representation: “removing or renaming a field” is breaking. |
+| `field.type` | breaking | [§5.5](https://w3id.org/restep/1/#versions) | A field of the representation changes type: “changing its type” is breaking. |
+| `field.optional` | breaking | [§5.5](https://w3id.org/restep/1/#versions) | A field that always came is no longer required in the item schema: it may be missing, as if removed. |
+| `field.enum-added` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§3](https://w3id.org/restep/1/#data) | New enum value in a representation: “adding […] enum values” is compatible; clients tolerate them (§3). |
+| `field.enum-removed` | info | [§5.5](https://w3id.org/restep/1/#versions) | A representation stops using an enum value: §5.5 does not classify it. |
+| `input.added-optional` | compatible | [§5.5](https://w3id.org/restep/1/#versions) | New optional input field: adding optional parameters is compatible. |
+| `input.added-required` | breaking | [§5.5](https://w3id.org/restep/1/#versions) | New required input field: “making an input field […] required when it was not” is breaking. |
+| `input.now-required` | breaking | [§5.5](https://w3id.org/restep/1/#versions) | An input field becomes required: breaking. |
+| `input.now-optional` | compatible | [§5.5](https://w3id.org/restep/1/#versions) | An input field is no longer required: everything accepted before is still accepted. |
+| `input.removed` | breaking | [§5.5](https://w3id.org/restep/1/#versions) | An input field disappears: “removing or renaming a field” is breaking. |
+| `input.type-narrowed` | breaking | [§5.5](https://w3id.org/restep/1/#versions) | An input field’s type changes or narrows: “changing its type” and “tightening validation” are breaking. |
+| `input.type-widened` | compatible | [§5.5](https://w3id.org/restep/1/#versions) | An input field accepts more types: everything accepted before is still accepted. |
+| `input.enum-removed` | breaking | [§5.5](https://w3id.org/restep/1/#versions) | An input field stops accepting an enum value: “tightening validation” is breaking. |
+| `input.enum-added` | compatible | [§5.5](https://w3id.org/restep/1/#versions) | An input field accepts a new enum value: “adding […] enum values” is compatible. |
+| `input.constraint-tightened` | breaking | [§5.5](https://w3id.org/restep/1/#versions) | A constraint on an input field tightens or appears (pattern, format, lengths, ranges, enum): “tightening validation” is breaking. |
+| `input.constraint-relaxed` | compatible | [§5.5](https://w3id.org/restep/1/#versions) | A constraint on an input field relaxes or goes away: everything accepted before is still accepted. |
+| `input.default-added` | info | [§4.3](https://w3id.org/restep/1/#describing), [§5.5](https://w3id.org/restep/1/#versions) | A POST field gains a default: a create without it no longer leaves it empty, but sets that value (§4.3). §5.5 does not classify it. |
+| `input.default-changed` | breaking | [§4.3](https://w3id.org/restep/1/#describing), [§5.5](https://w3id.org/restep/1/#versions) | The default of a POST field changes: the same create without that field now stores another value (§4.3), a change of meaning that §5.5 makes breaking. |
+| `input.default-removed` | breaking | [§4.3](https://w3id.org/restep/1/#describing), [§5.5](https://w3id.org/restep/1/#versions) | A POST field loses its default: a create without it leaves it empty instead of setting the value it used to (§4.3). |
+| `input.closed` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§4.3](https://w3id.org/restep/1/#describing) | The body becomes additionalProperties: false: it rejects members it used to accept (“tightening validation”). |
+| `input.opened` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§4.3](https://w3id.org/restep/1/#describing) | The body stops being closed: everything accepted before is still accepted. |
+| `filter.added` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§6.1](https://w3id.org/restep/1/#filters) | New filter: “supporting new filters […]” is compatible. |
+| `filter.removed` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§6.1](https://w3id.org/restep/1/#filters), [§5.3](https://w3id.org/restep/1/#reserved) | A filter disappears: “removing a filter” is breaking; it now gives unsupported_parameter. It is retired with a filter or field notice. |
+| `filter.op-added` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§6.1](https://w3id.org/restep/1/#filters) | New operator on a filter: supporting new filters is compatible. |
+| `filter.op-removed` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§6.1](https://w3id.org/restep/1/#filters), [§5.3](https://w3id.org/restep/1/#reserved) | A filter loses an operator: “removing an […] operator” is breaking; it is retired with an operator notice. |
+| `filter.op-unknown` | info | [§6.1](https://w3id.org/restep/1/#filters), [§4.2](https://w3id.org/restep/1/#discovery) | An operator outside the list of §6.1 appears or disappears: a server MUST NOT declare one, and a client ignores it on its own and keeps using the other operators (§4.2). |
+| `filter.quantifier` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§6.1](https://w3id.org/restep/1/#filters) | A filter gains, loses or changes its quantifier while keeping an operator other than null: what it matches changes (a list or a to-many path against a plain field). null tests the whole relationship or list either way, so a filter whose only operator is null may omit the quantifier or carry "some" and switching is compatible (§6.1). |
+| `filter.required` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§6.1](https://w3id.org/restep/1/#filters) | A filter or named filter of an existing collection becomes required, or stops being so: “declaring a default or a required filter on an existing collection, or changing which ones apply” is breaking. |
+| `filter.default` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§6.1](https://w3id.org/restep/1/#filters) | A named filter of an existing collection becomes a default filter, or stops being one: “declaring a default or a required filter on an existing collection, or changing which ones apply” is breaking. |
+| `filter.type` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§6.1](https://w3id.org/restep/1/#filters) | A filter’s type changes: the server compares by the declared type (§6.1); changing the type is breaking. |
+| `filter.values-added` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§6.1](https://w3id.org/restep/1/#filters) | An enum filter accepts a new value: adding enum values is compatible. |
+| `filter.values-removed` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§6.1](https://w3id.org/restep/1/#filters) | An enum filter stops accepting a value: “removing […] a value from a declared enumeration” is breaking; it is retired with a value notice. |
+| `collation.named` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§6.1](https://w3id.org/restep/1/#filters) | collations goes from "server" to another value: compatible if it names the equality and order it already used (table in §5.5), which restep-diff cannot check. |
+| `collation.changed` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§6.1](https://w3id.org/restep/1/#filters) | Any other declaration or change of collations on a field whose filter or sort already existed: “changing […] the collation of a field” is breaking. |
+| `named-filter.added` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§6.1](https://w3id.org/restep/1/#filters) | New named filter: “supporting new filters […]” is compatible. |
+| `named-filter.removed` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§6.1](https://w3id.org/restep/1/#filters), [§5.3](https://w3id.org/restep/1/#reserved) | A named filter disappears: removing a filter (a named one too) is breaking; it now gives unsupported_parameter. |
+| `named-filter.type` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§6.1](https://w3id.org/restep/1/#filters) | A named filter’s type changes, or it goes from a switch to taking a value or back: what used to be accepted gives invalid_parameter. |
+| `named-filter.values-added` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§6.1](https://w3id.org/restep/1/#filters) | An enum named filter accepts a new value: adding enum values is compatible. |
+| `named-filter.values-removed` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§6.1](https://w3id.org/restep/1/#filters) | An enum named filter stops accepting a value: it now gives invalid_parameter, and “tightening validation” is breaking. |
+| `named-filter.description` | info | [§6.1](https://w3id.org/restep/1/#filters) | A named filter’s description changes, and it is what says which items it returns: if what it returns changes, the change is breaking even though discovery does not show it. |
+| `sort.added` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§6.2](https://w3id.org/restep/1/#sorting) | New sort key: “supporting […] new sorts” is compatible. |
+| `sort.removed` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§6.2](https://w3id.org/restep/1/#sorting) | A sort key disappears: “removing […] a sort key” is breaking; it now gives unsupported_parameter. |
+| `max-limit.lower` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§6.4](https://w3id.org/restep/1/#pagination) | max_limit goes down: it is retired with a max_limit notice whose value is the new limit (table in §5.5). |
+| `max-limit.higher` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§6.4](https://w3id.org/restep/1/#pagination) | max_limit goes up: compatible according to the table in §5.5. |
+| `max-limit.added` | compatible | [§6.4](https://w3id.org/restep/1/#pagination) | max_limit starts being declared: limit is now accepted, a new capability. |
+| `max-limit.removed` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§6.4](https://w3id.org/restep/1/#pagination) | max_limit stops being declared: breaking according to the table in §5.5, because without it limit is not accepted (§6.4). |
+| `count.added` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§6.5](https://w3id.org/restep/1/#counts) | count is declared: a new capability is compatible. |
+| `count.removed` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§6.5](https://w3id.org/restep/1/#counts) | count stops being declared: “removing […] a count” is breaking; it is retired with a count notice without value. |
+| `count.estimated` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§6.5](https://w3id.org/restep/1/#counts) | count goes from exact to estimated: it is retired with a count notice with "estimated" in value (table in §5.5). |
+| `count.exact` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§6.5](https://w3id.org/restep/1/#counts) | count goes from estimated to exact: compatible according to the table in §5.5. |
+| `relation.added` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§9](https://w3id.org/restep/1/#relations) | New relationship: adding fields is compatible. |
+| `relation.removed` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§9](https://w3id.org/restep/1/#relations) | A relationship disappears: “removing […] a relationship” is breaking. |
+| `relation.to` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§9](https://w3id.org/restep/1/#relations) | A relationship’s target collection changes, it loses one of its targets, or it goes from one target to several or back (the link gains or loses type, §3): “changing its meaning” is breaking. |
+| `relation.to-added` | info | [§9](https://w3id.org/restep/1/#relations), [§3](https://w3id.org/restep/1/#data) | A relationship that already pointed to several collections gains a target: its links may carry a new type. §5.5 does not classify it; §3 asks clients to tolerate new values only in enums. |
+| `relation.many` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§3](https://w3id.org/restep/1/#data) | A relationship goes from to-one to to-many or back: the field changes type (object or list, §3). |
+| `relation.include-added` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§9](https://w3id.org/restep/1/#relations) | A relationship can now be included: “supporting […] new includes” is compatible. |
+| `relation.include-removed` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§9](https://w3id.org/restep/1/#relations) | A relationship can no longer be included: “removing […] an include” is breaking; it is retired with an include notice. |
+| `relation.media-types-tightened` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§5.1](https://w3id.org/restep/1/#resources), [§9](https://w3id.org/restep/1/#relations) | A relationship’s media_types accepts fewer files (declared where it was not, or loses a type): a link that was accepted now gets 422 (“tightening validation”). |
+| `relation.media-types-relaxed` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§5.1](https://w3id.org/restep/1/#resources), [§9](https://w3id.org/restep/1/#relations) | A relationship’s media_types accepts more files (gains a type, or is no longer declared). |
+| `relation.path` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§9](https://w3id.org/restep/1/#relations) | A relationship’s path changes or disappears: “changing […] the URLs of resources” is breaking. |
+| `relation.path-declared` | info | [§9](https://w3id.org/restep/1/#relations) | A relationship declares path: the template of the subcollection it leads to (§9). No URL changes. |
+| `include-depth.lower` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§9](https://w3id.org/restep/1/#relations) | include_depth goes down: a path that used to work gives unsupported_parameter. |
+| `include-depth.higher` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§9](https://w3id.org/restep/1/#relations) | include_depth goes up: more includes are accepted. |
+| `sync.added` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§10](https://w3id.org/restep/1/#sync) | The collection becomes synced (it declares sync and the profile is announced): a new capability is compatible. |
+| `sync.removed` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§10](https://w3id.org/restep/1/#sync) | The collection stops declaring sync: “removing […] a collection’s sync” is breaking, and :changes now gives 404. |
+| `sync.retention-higher` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§10](https://w3id.org/restep/1/#sync) | sync.retention goes up: compatible according to the table in §5.5. |
+| `sync.retention-lower` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§10](https://w3id.org/restep/1/#sync) | sync.retention goes down, not below 7 days: compatible if the server keeps the old period for states already issued (table in §5.5), which the document does not say. |
+| `sync.retention-too-low` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§10](https://w3id.org/restep/1/#sync) | sync.retention goes below 7 days, the minimum of §10: the table in §5.5 only makes it compatible if it meets it. |
+| `sync.retention-declaration` | info | [§10](https://w3id.org/restep/1/#sync) | sync.retention starts or stops being declared: it SHOULD be declared (§10). |
+| `action.added` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§11.1](https://w3id.org/restep/1/#actions) | New action: “adding […] actions” is compatible. |
+| `action.removed` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§11.1](https://w3id.org/restep/1/#actions) | An action disappears: “removing […] an action” is breaking. |
+| `action.on` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§11.1](https://w3id.org/restep/1/#actions) | An action moves from item to collection or back: its URL changes. |
+| `action.method` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§11.1](https://w3id.org/restep/1/#actions) | An action changes method (POST or GET): a method is removed. |
+| `action.weaker` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§11.1](https://w3id.org/restep/1/#actions) | An action is no longer safe or idempotent: breaking according to the table in §5.5; the action is retired and another name declared. |
+| `action.stronger` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§11.1](https://w3id.org/restep/1/#actions) | An action becomes safe or idempotent: compatible according to the table in §5.5. |
+| `action.param-added` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§11.1](https://w3id.org/restep/1/#actions) | A GET action accepts a new optional parameter: “adding optional parameters” is compatible. |
+| `action.param-required` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§11.1](https://w3id.org/restep/1/#actions) | A GET action gains a required parameter, or one becomes required: “making […] a parameter […] required when it was not” is breaking. |
+| `action.param-removed` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§11.1](https://w3id.org/restep/1/#actions), [§5.3](https://w3id.org/restep/1/#reserved) | A parameter of a GET action disappears: it now gives unsupported_parameter. |
+| `action.param-changed` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§11.1](https://w3id.org/restep/1/#actions) | A parameter of a GET action changes type, goes from a list to a scalar or back, or stops accepting an enum value: what was accepted now gives invalid_parameter. |
+| `action.param-relaxed` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§11.1](https://w3id.org/restep/1/#actions) | A parameter of a GET action is no longer required, or accepts a new enum value: everything accepted before is still accepted. |
+| `language-map.added` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§3](https://w3id.org/restep/1/#data) | New field that is a language map: adding fields is compatible. |
+| `language-map.retyped` | breaking | [§3](https://w3id.org/restep/1/#data), [§5.5](https://w3id.org/restep/1/#versions) | A field that already existed becomes a language map: its type changes. |
+| `language-map.removed` | breaking | [§3](https://w3id.org/restep/1/#data), [§5.5](https://w3id.org/restep/1/#versions) | A field stops being a language map: “the type of a language map MUST NOT change”. |
+| `localized.added` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§3](https://w3id.org/restep/1/#data) | New localized field: adding fields is compatible. |
+| `localized.retyped` | breaking | [§3](https://w3id.org/restep/1/#data), [§5.5](https://w3id.org/restep/1/#versions) | A field that already existed becomes localized: it becomes read-only and its value depends on the language, a change of meaning. |
+| `localized.removed` | breaking | [§3](https://w3id.org/restep/1/#data), [§5.5](https://w3id.org/restep/1/#versions) | A field stops being localized: it is removed or changes meaning. |
+| `localized.source` | breaking | [§3](https://w3id.org/restep/1/#data), [§5.5](https://w3id.org/restep/1/#versions) | The source language map of a localized field changes: the field changes meaning. |
+| `local-time.added` | compatible | [§5.5](https://w3id.org/restep/1/#versions), [§3](https://w3id.org/restep/1/#data) | New field holding a local date-time: adding fields is compatible. |
+| `local-time.declared` | info | [§3](https://w3id.org/restep/1/#data), [§4.2](https://w3id.org/restep/1/#discovery) | A field that already existed is declared in local_times: review whether its values change; §5.5 only classifies a change of the zone. |
+| `local-time.zone` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§3](https://w3id.org/restep/1/#data) | The zone declared for a local date-time changes (or it goes from floating to zoned or back): breaking according to the table in §5.5, the field changes meaning. |
+| `local-time.removed` | breaking | [§3](https://w3id.org/restep/1/#data), [§5.5](https://w3id.org/restep/1/#versions) | A field is no longer declared in local_times: it is removed or changes meaning. |
+| `inherit.added` | compatible | [§11.6](https://w3id.org/restep/1/#inheritance) | Inheritance on a new piece of data or on a read-only field: “adding inheritance to new data, or to a field that was already read-only, is compatible”. |
+| `inherit.writable` | breaking | [§11.6](https://w3id.org/restep/1/#inheritance), [§5.5](https://w3id.org/restep/1/#versions) | Inheritance on a field that could be written: “turning into an effective field one that could be written until now is not”. |
+| `inherit.unknown` | info | [§11.6](https://w3id.org/restep/1/#inheritance) | Inheritance on an existing field, with no input schemas to tell whether it was writable: review it (§11.6, Evolution). |
+| `inherit.removed` | breaking | [§11.6](https://w3id.org/restep/1/#inheritance), [§5.5](https://w3id.org/restep/1/#versions) | An inherit declaration disappears: the own field stops existing or changes meaning. |
+| `inherit.own` | breaking | [§5.5](https://w3id.org/restep/1/#versions), [§11.6](https://w3id.org/restep/1/#inheritance) | The name of the own field changes: “removing or renaming a field” is breaking. |
+| `inherit.from` | info | [§11.6](https://w3id.org/restep/1/#inheritance) | An inheritance’s from chain changes: where the value comes from changes, not its type. |
+| `inherit.default-removed` | breaking | [§11.6](https://w3id.org/restep/1/#inheritance), [§5.5](https://w3id.org/restep/1/#versions) | The inheritance loses its default: the effective field, which was never empty, can now have no value. |
+| `inherit.default-added` | compatible | [§11.6](https://w3id.org/restep/1/#inheritance) | The inheritance gains a default: the effective field is never empty any more. |
+| `inherit.combine` | breaking | [§11.6](https://w3id.org/restep/1/#inheritance), [§5.5](https://w3id.org/restep/1/#versions) | combine changes: the effective value is resolved otherwise (the own value whole, or member by member), a change of meaning. |
+| `inherit.switch` | info | [§11.6](https://w3id.org/restep/1/#inheritance) | An inheritance switch is declared, withdrawn or changed: while it is off nothing comes from above. §5.5 does not classify it. |
+| `inherit.unknown-member` | breaking | [§11.6](https://w3id.org/restep/1/#inheritance), [§4.2](https://w3id.org/restep/1/#discovery) | An inherit or inherit_items declaration gains a member clients do not know: they treat it as not inherited (§4.2), as if it were removed. |
+| `inherit-items.changed` | info | [§11.6](https://w3id.org/restep/1/#inheritance) | inherit_items is declared, withdrawn or changes: the subcollection lists other inherited items. §5.5 does not classify it. |
+| `deprecation.announced` | deprecation | [§5.5](https://w3id.org/restep/1/#versions) | New deprecation notice in deprecations: for a resource retired whole (collection, singleton, action, version) its responses MUST carry Deprecation with its announced; a notice for part of a resource goes only in discovery. |
+| `deprecation.short-notice` | deprecation | [§5.5](https://w3id.org/restep/1/#versions) | A deprecation notice with less than six months between its announced (or --date, if it has none) and its sunset: “at least six months SHOULD pass”. |
+| `deprecation.sunset-changed` | deprecation | [§5.5](https://w3id.org/restep/1/#versions) | A deprecation notice’s sunset date changes. |
+| `deprecation.announced-changed` | breaking | [§5.5](https://w3id.org/restep/1/#versions) | A deprecation notice’s announced changes: it “MUST NOT change afterwards”. |
+| `deprecation.unknown-kind` | info | [§5.5](https://w3id.org/restep/1/#versions), [§4.2](https://w3id.org/restep/1/#discovery) | New notice with a kind that does not exist in that place (root, collection or singleton): clients MUST NOT use it, and restep-diff does not count it either. |
+| `deprecation.withdrawn` | info | [§5.5](https://w3id.org/restep/1/#versions) | A deprecation notice disappears and what it announced is still there: a change of mind. |
+| `deprecation.retired` | deprecation | [§5.5](https://w3id.org/restep/1/#versions), [§12](https://w3id.org/restep/1/#conformance) | Something announced in deprecations disappears after its sunset: the retirement §5.5 allows. |
+| `deprecation.dropped` | breaking | [§5.5](https://w3id.org/restep/1/#versions) | A deprecation notice disappears after its sunset, or together with what it retires: discovery MUST keep it until the next major version, so that a client knows why something is missing. |
+| `deprecation.fraction` | info | [§5.5](https://w3id.org/restep/1/#versions) | A new deprecation notice has announced or sunset with a fraction of a second: they MUST be in whole seconds, which the Deprecation and Sunset headers can carry. |
+| `member.changed` | info | [§4.2](https://w3id.org/restep/1/#discovery) | Another discovery member that restep-diff does not classify changes. |
+<!-- /rules -->
 
 ## What it compares
 
@@ -223,8 +263,9 @@ Generated with `--rules --markdown`; `test.mjs` checks that it matches the code.
   missing), `filter`, `named_filters`, `collations` (a missing field is `"codepoint"`), `sort`,
   `max_limit`, `count`, `relations`, `include_depth` (1 if missing, §9), `sync`, `actions`,
   `language_maps`, `inherit` and `deprecations`.
-- Each singleton (§5.9): `path`, `description`, `methods`, `schemas` (`item` and `update`) and
-  `deprecations`. A singleton with a template or with `parent` is treated as absent, because the
+- Each singleton (§5.9): `path`, `description`, `methods`, `method_effects` (only `PATCH`, all
+  three where undeclared, classified as `effects.added` or `effects.removed` like a collection's),
+  `schemas` (`item` and `update`) and `deprecations`. A singleton with a template or with `parent` is treated as absent, because the
   client ignores it.
 - `sync` only counts in a collection if `profiles` announces `sync` (§10). If the whole profile
   disappears, `profile.removed` says so and it is not repeated for each collection; the same goes
@@ -239,7 +280,7 @@ Generated with `--rules --markdown`; `test.mjs` checks that it matches the code.
 
 ```bash
 node tools/restep-diff/test.mjs            # from projects/restep
-node tools/restep-diff/test.mjs filtro     # only the pairs whose name contains "filtro"
+node tools/restep-diff/test.mjs filter     # only the pairs whose name contains "filter"
 ```
 
 1. `fixtures/cases.json`: pairs of discovery documents built on `fixtures/base.json` with JSON
@@ -249,7 +290,7 @@ node tools/restep-diff/test.mjs filtro     # only the pairs whose name contains 
    `--markdown`, `--fail-on`, `--date` and the usage errors.
 3. The reference server (port 8820) against a mutated copy of it (port 8821, in a temporary
    directory): a sort is removed, a field becomes required, `max_limit` goes down, an enum value
-   and a filter are added, a method is removed from a collection and another from the `shop`
+   and a filter operator are added, a method is removed from a collection and another from the `shop`
    singleton, a field's collation goes from `"server"` to `"codepoint"`, `id_from` from
    `"either"` to `"client"`, a relation can no longer be expanded, an action becomes idempotent and
    `include_depth` goes up. The documents are fetched over HTTP.
@@ -264,10 +305,44 @@ node tools/restep-diff/test.mjs filtro     # only the pairs whose name contains 
 - It only sees the discovery document: it does not compare headers (`Deprecation`, `Sunset`,
   `successor-version`), error codes, the default order or the format of `id`s, which §5.5 also
   protects. `restep-check` checks the headers of a retirement.
-- It does not check that each document conforms to draft 6 on its own (name grammar, that
+- It does not check that each document conforms to draft 7 on its own (name grammar, that
   `announced` exists, that a subcollection declares `parent`…): that is `restep-check`'s job.
 - `--header` and `--language` apply to both documents.
 - A rename looks like a field, collection or relation that disappears plus a new one.
+
+## What draft 7 adds
+
+- **Discovery members of draft 7**: `default_language` (§5.6), `reusable_ids`, `upsert` and
+  `upload` (§5.1), `method_effects`, `item_method_effects` and the `effects` of actions (§4.3,
+  §11.1), `quantifier`, `required` and default named filters (§6.1), `media_types` on a
+  relationship, `params` and `output` of actions (§11.1), `localized` and `local_times` (§3),
+  `combine`, `switch` and `inherit_items` (§11.6), and the `parent`, `actions` and
+  `method_effects` of a singleton (§5.9). Each has its rules, classified by the table of §5.5.
+  `null` on a to-many relationship or a list field, declared without `quantifier`, is a filter
+  like any other (`filter.added`, `filter.removed`); a `GET` action without `params` is the same
+  as `"params": {}` (§5.3), so declaring `{}` changes nothing.
+- **Council, round 3**: in a collection that keeps `upload`, `schemas.create` announces creation
+  from JSON (§5.1), so withdrawing it is `upload.create-removed` (breaking) and declaring it is
+  `upload.create-added` (compatible), or `upload.create-json` (breaking) where `media_types`
+  admits `application/json` or `application/*`: a JSON `POST` that was a file now creates an item.
+  `null` tests the whole relationship or list with or without `quantifier` (§6.1), so
+  `filter.quantifier` only fires when the filter keeps an operator other than `null`: a filter
+  whose only operator is `null` switches between no quantifier and `"some"` without a change.
+- **Council, round 4**: `*/*` is a media range (§5.1), so it admits `application/json` for
+  `upload.create-json` like `application/*` does; a `+json` type such as `application/ld+json`
+  never does, because only `application/json` selects creation from JSON. `upload.tightened` and
+  `upload.relaxed` compare what the ranges admit, not their spelling: `image/png` → `image/*` or
+  `*/*` is `upload.relaxed`, and the reverse `upload.tightened`.
+- **What clients ignore counts as absent** (§4.2): an operator outside the list of §6.1 is
+  ignored on its own (`filter.op-unknown`, info), a filter whose `quantifier` is unknown is
+  ignored (it counts as removed), an `effects` value that is unknown counts as all three (also on
+  a safe action), a
+  collation that is not a string counts as `"server"`, and an inheritance with a member clients do
+  not know counts as not inherited (`inherit.unknown-member`). A singleton is ignored only when its
+  `path` is a template without `parent` or its `parent` names nothing in the document.
+- **Notices stay** (§5.5): a notice that disappears after its `sunset`, or together with what it
+  retires, is `deprecation.dropped` (breaking); a new notice with a fraction of a second in
+  `announced` or `sunset` is `deprecation.fraction`.
 
 ## Open questions about the spec
 
@@ -280,7 +355,7 @@ actions, retention periods and `max_limit` are classified. These remain:
 - **Restep version with a suffix (§1.1).** A draft "may differ incompatibly" from any other and
   from the published version, but §5.5 does not classify a change in the version the server
   declares. restep-diff treats it as breaking (`restep.prerelease`), also when going from
-  `1.0-draft.6` to `1.0`.
+  `1.0-draft.7` to `1.0`.
 - **Experimental parts after a version change (§1.2).** Not in §5.5 either: a client stops using
   them if it does not know the text of the new version. restep-diff marks it as breaking
   (`restep.experimental`), even when the minor version goes up.
@@ -305,6 +380,15 @@ actions, retention periods and `max_limit` are classified. These remain:
   not in the table: a client may find a `type` it does not know, and §3 only asks to tolerate new
   values in enumerations. restep-diff leaves it as `info` (`relation.to-added`); removing a
   target, or going from one target to a list (the link gains `type`), is breaking.
+- **Effects declared where there were none (§11.1, §5.5).** Without `effects` a client counts all
+  three on an unsafe action, so declaring only some (`["external"]`) removes the others for it.
+  The table only names declaring `[]`; restep-diff treats any subset as `effects.removed`. A safe
+  action without `effects` has none: declaring `charges` adds an effect, dropping it removes one.
+  Effects are compared while an action stays safe or unsafe; the change of safety itself is
+  `action.weaker` or `action.stronger`.
+- **Changes draft 7 does not classify**: `inherit_items`, an inheritance `switch`, declaring an
+  existing field in `local_times`, and `default_language` starting to be declared are `info`.
+  Changing `default_language` is treated as breaking, since §5.6 makes it "fixed for the API".
 - **A relation's `path`.** §9 says the relation that leads to a subcollection MAY carry its
   template; restep-diff treats declaring it as `info` and removing it as breaking, even though no
   URL really changes.
@@ -312,7 +396,7 @@ actions, retention periods and `max_limit` are classified. These remain:
 ## Code and issues
 
 Code and issues: <https://github.com/restep-spec/restep-diff>. That repository is generated from the Restep
-site, where the tool is developed alongside the [specification](https://restep.wubytes.com/1/) and the reference
+site, where the tool is developed alongside the [specification](https://w3id.org/restep/1/) and the reference
 server: `vendor/` and `schema/` are copies from the site so the tests run on their own.
 
 MIT licensed.

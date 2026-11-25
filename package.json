@@ -1,6 +1,6 @@
 {
   "name": "restep-diff",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Compares two Restep 1 discovery documents and classifies each change by its evolution rules",
   "license": "MIT",
   "files": [

@@ -242,6 +242,11 @@
       },
       "deprecations": [
         {
+          "kind": "sort",
+          "name": "title",
+          "sunset": "2026-06-01T00:00:00Z"
+        },
+        {
           "kind": "field",
           "name": "rating",
           "sunset": "2027-09-01T00:00:00Z"

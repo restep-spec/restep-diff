@@ -1,9 +1,9 @@
-// Pruebas de restep-diff.
-//   node tools/restep-diff/test.mjs            (desde projects/restep)
-//   node tools/restep-diff/test.mjs filtro     (solo los casos cuyo nombre contiene «filtro»)
-// 1. Cada par de fixtures/cases.json da exactamente las reglas que espera, y entre todos cubren todas las reglas.
-// 2. La CLI: formatos, --fail-on, --date, errores de uso.
-// 3. El servidor de referencia frente a una copia mutada de él (en un tmpdir), pidiendo los documentos por HTTP.
+// Tests for restep-diff.
+//   node tools/restep-diff/test.mjs            (from projects/restep)
+//   node tools/restep-diff/test.mjs filter     (only the cases whose name contains "filter")
+// 1. Each pair in fixtures/cases.json gives exactly the rules it expects, and together they cover every rule.
+// 2. The CLI: formats, --fail-on, --date, usage errors.
+// 3. The reference server against a mutated copy of it (in a tmpdir), requesting the documents over HTTP.
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
@@ -14,13 +14,13 @@ import { diff, RULES } from './restep-diff.mjs';
 const here = dirname(fileURLToPath(import.meta.url));
 const CLI = join(here, 'restep-diff.mjs');
 const SERVER = readFileSync(join(here, 'vendor/restep-server.mjs'), 'utf8');
-const PORTS = [8820, 8821]; // rango asignado: 8820-8829
+const PORTS = [8820, 8821]; // assigned range: 8820-8829
 const DATE = '2026-11-20T00:00:00Z';
 const only = process.argv[2];
 
 let failed = 0, passed = 0;
 const ok = (name) => { passed++; console.log(`ok     ${name}`); };
-const fail = (name, why) => { failed++; console.log(`FALLA  ${name}: ${why}`); };
+const fail = (name, why) => { failed++; console.log(`FAIL   ${name}: ${why}`); };
 const check = (name, why) => (why ? fail(name, why) : ok(name));
 
 const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -35,10 +35,10 @@ function mergePatch(target, patch) { // RFC 7396
 }
 const setDiff = (got, want) => {
   const extra = [...got].filter((r) => !want.has(r)), missing = [...want].filter((r) => !got.has(r));
-  return extra.length || missing.length ? `${missing.length ? `faltan ${missing.join(', ')}` : ''}${missing.length && extra.length ? '; ' : ''}${extra.length ? `sobran ${extra.join(', ')}` : ''}` : null;
+  return extra.length || missing.length ? `${missing.length ? `missing ${missing.join(', ')}` : ''}${missing.length && extra.length ? '; ' : ''}${extra.length ? `unexpected ${extra.join(', ')}` : ''}` : null;
 };
 
-// ── 1. Pares de fixtures ─────────────────────────────────────────────────────
+// ── 1. Fixture pairs ─────────────────────────────────────────────────────
 const base = JSON.parse(readFileSync(join(here, 'fixtures/base.json'), 'utf8'));
 const { cases } = JSON.parse(readFileSync(join(here, 'fixtures/cases.json'), 'utf8'));
 const covered = new Set();
@@ -48,15 +48,15 @@ for (const c of cases) {
   const got = new Set(changes.map((x) => x.rule));
   got.forEach((r) => covered.add(r));
   if (only && !c.name.includes(only)) continue;
-  check(`par: ${c.name}`, setDiff(got, new Set(c.expect)));
+  check(`pair: ${c.name}`, setDiff(got, new Set(c.expect)));
 }
 if (!only) {
   const uncovered = Object.keys(RULES).filter((r) => !covered.has(r));
-  check(`los pares cubren las ${Object.keys(RULES).length} reglas`, uncovered.length ? `sin cubrir: ${uncovered.join(', ')}` : null);
-  // Comparar al revés: lo compatible en un sentido es casi siempre incompatible en el otro.
+  check(`the pairs cover all ${Object.keys(RULES).length} rules`, uncovered.length ? `not covered: ${uncovered.join(', ')}` : null);
+  // Compare in reverse: what is compatible one way is almost always incompatible the other.
   const added = diff(base, mergePatch(base, { collections: { books: { filter: { year: { type: 'integer', ops: ['eq'] } } } } }));
   const removed = diff(mergePatch(base, { collections: { books: { filter: { year: { type: 'integer', ops: ['eq'] } } } } }), base);
-  check('un filtro nuevo es compatible y quitarlo no', added[0]?.severity === 'compatible' && removed[0]?.severity === 'breaking' ? null
+  check('a new filter is compatible and removing it is not', added[0]?.severity === 'compatible' && removed[0]?.severity === 'breaking' ? null
     : `${added[0]?.severity} / ${removed[0]?.severity}`);
 }
 
@@ -75,97 +75,98 @@ try {
   const write = (name, doc) => { const f = join(dir, name); writeFileSync(f, JSON.stringify(doc)); return f; };
   const B = join(here, 'fixtures/changelog-old.json');
   const N = join(here, 'fixtures/changelog-new.json');
-  const deprecOnly = write('deprecation.json', mergePatch(base, { collections: { books: { deprecations: [{ kind: 'field', name: 'rating', sunset: '2027-12-01T00:00:00Z' }] } } }));
-  const compatOnly = write('compatible.json', mergePatch(base, { collections: { books: { sort: ['id', 'price', 'rating', 'title', 'year'] } } }));
+  // Draft 7 (§5.5): discovery keeps a notice after its sunset, so these keep the one of the old document.
+  const oldDoc = JSON.parse(readFileSync(B, 'utf8'));
+  const deprecOnly = write('deprecation.json', mergePatch(oldDoc, { collections: { books: { deprecations: [...oldDoc.collections.books.deprecations, { kind: 'field', name: 'rating', sunset: '2027-12-01T00:00:00Z' }] } } }));
+  const compatOnly = write('compatible.json', mergePatch(oldDoc, { collections: { books: { sort: [...oldDoc.collections.books.sort, 'year'] } } }));
 
   if (!only) {
     let r = await cli([B, N, '--date', DATE]);
-    check('cli: texto agrupado por gravedad y salida 1 con incompatibles', r.code !== 1 ? `salida ${r.code}: ${r.err}`
-      : !/^Incompatibles \(\d+\)[\s\S]*^Retiradas y avisos \(\d+\)[\s\S]*^Compatibles \(\d+\)[\s\S]*^Otros cambios \(\d+\)[\s\S]*^Resumen:/m.test(r.out) ? `texto inesperado:\n${r.out}` : null);
+    check('cli: text grouped by severity and exit 1 with breaking changes', r.code !== 1 ? `exit ${r.code}: ${r.err}`
+      : !/^Breaking \(\d+\)[\s\S]*^Retirements and notices \(\d+\)[\s\S]*^Compatible \(\d+\)[\s\S]*^Other changes \(\d+\)[\s\S]*^Summary:/m.test(r.out) ? `unexpected text:\n${r.out}` : null);
 
     r = await cli([B, N, '--date', DATE, '--json']);
     let json = null;
-    try { json = JSON.parse(r.out); } catch { /* abajo */ }
-    check('cli: --json', !json ? `no es JSON:\n${r.out}`
-      : json.summary.breaking < 1 || json.changes.length !== Object.values(json.summary).reduce((s, n) => s + n, 0) ? `resumen incoherente: ${JSON.stringify(json.summary)}`
-      : !json.changes.every((c) => RULES[c.rule] && c.location.startsWith('/') && c.links.every((l) => l.startsWith('https://restep.wubytes.com/es/1/#'))) ? 'cambios sin regla, ubicación o enlace'
+    try { json = JSON.parse(r.out); } catch { /* checked below */ }
+    check('cli: --json', !json ? `not JSON:\n${r.out}`
+      : json.summary.breaking < 1 || json.changes.length !== Object.values(json.summary).reduce((s, n) => s + n, 0) ? `inconsistent summary: ${JSON.stringify(json.summary)}`
+      : !json.changes.every((c) => RULES[c.rule] && c.location.startsWith('/') && c.links.every((l) => l.startsWith('https://w3id.org/restep/1/#'))) ? 'changes without rule, location or link'
       : null);
 
     r = await cli([B, N, '--date', DATE, '--markdown']);
-    check('cli: --markdown', r.code !== 1 ? `salida ${r.code}` : !r.out.startsWith('## Cambios en la API') || !r.out.includes('### Incompatibles')
-      || !r.out.includes('](https://restep.wubytes.com/es/1/#versiones)') ? `Markdown inesperado:\n${r.out}` : null);
+    check('cli: --markdown', r.code !== 1 ? `exit ${r.code}` : !r.out.startsWith('## API changes') || !r.out.includes('### Breaking')
+      || !r.out.includes('](https://w3id.org/restep/1/#versions)') ? `unexpected Markdown:\n${r.out}` : null);
 
     r = await cli([B, N, '--fail-on', 'none']);
-    check('cli: --fail-on none', r.code === 0 ? null : `salida ${r.code}`);
+    check('cli: --fail-on none', r.code === 0 ? null : `exit ${r.code}`);
     r = await cli([B, deprecOnly, '--date', DATE]);
-    check('cli: un aviso de retirada no falla por defecto', r.code === 0 ? null : `salida ${r.code}`);
+    check('cli: a deprecation notice does not fail by default', r.code === 0 ? null : `exit ${r.code}`);
     r = await cli([B, deprecOnly, '--date', DATE, '--fail-on', 'deprecation']);
-    check('cli: --fail-on deprecation', r.code === 1 ? null : `salida ${r.code}`);
+    check('cli: --fail-on deprecation', r.code === 1 ? null : `exit ${r.code}`);
     r = await cli([B, compatOnly, '--fail-on', 'deprecation']);
-    check('cli: lo compatible no falla', r.code === 0 ? null : `salida ${r.code}`);
+    check('cli: compatible changes do not fail', r.code === 0 ? null : `exit ${r.code}`);
     r = await cli([B, B]);
-    check('cli: sin cambios', r.code === 0 && r.out.includes('Sin cambios') ? null : `salida ${r.code}:\n${r.out}`);
+    check('cli: no changes', r.code === 0 && r.out.includes('No changes') ? null : `exit ${r.code}:\n${r.out}`);
     r = await cli([B, N, '--date', '2020-01-01T00:00:00Z', '--json']);
     const early = JSON.parse(r.out).changes.filter((c) => c.rule === 'deprecation.retired').length;
     r = await cli([B, N, '--date', DATE, '--json']);
     const late = JSON.parse(r.out).changes.filter((c) => c.rule === 'deprecation.retired').length;
-    check('cli: --date decide si un sunset ya pasó', early === 0 && late > 0 ? null : `retiradas: ${early} antes, ${late} después`);
+    check('cli: --date decides whether a sunset has passed', early === 0 && late > 0 ? null : `retirements: ${early} before, ${late} after`);
 
     r = await cli([B]);
-    check('cli: un solo documento es error de uso', r.code === 2 ? null : `salida ${r.code}`);
+    check('cli: a single document is a usage error', r.code === 2 ? null : `exit ${r.code}`);
     r = await cli([B, N, '--fail-on', 'todo']);
-    check('cli: --fail-on desconocido', r.code === 2 ? null : `salida ${r.code}`);
-    r = await cli([B, write('otro.json', { openapi: '3.1.0' })]);
-    check('cli: un JSON que no es descubrimiento', r.code === 2 && r.err.includes('restep') ? null : `salida ${r.code}: ${r.err}`);
-    r = await cli([B, join(dir, 'no-existe.json')]);
-    check('cli: archivo que no existe', r.code === 2 ? null : `salida ${r.code}`);
+    check('cli: unknown --fail-on', r.code === 2 ? null : `exit ${r.code}`);
+    r = await cli([B, write('other.json', { openapi: '3.1.0' })]);
+    check('cli: a JSON that is not discovery', r.code === 2 && r.err.includes('restep') ? null : `exit ${r.code}: ${r.err}`);
+    r = await cli([B, join(dir, 'missing.json')]);
+    check('cli: missing file', r.code === 2 ? null : `exit ${r.code}`);
     r = await cli(['--rules', '--markdown']);
-    const readme = readFileSync(join(here, 'README.md'), 'utf8').match(/<!-- reglas -->\n([\s\S]*?)\n<!-- \/reglas -->/)?.[1];
-    check('README: la tabla de reglas está al día', readme === r.out.trimEnd() ? null : 'regenérala con --rules --markdown');
+    const readme = readFileSync(join(here, 'README.md'), 'utf8').match(/<!-- rules -->\n([\s\S]*?)\n<!-- \/rules -->/)?.[1];
+    check('README: the rules table is up to date', readme === r.out.trimEnd() ? null : 'regenerate it with --rules --markdown');
     r = await cli(['--rules', '--json']);
-    check('cli: --rules', r.code === 0 && JSON.parse(r.out).length === Object.keys(RULES).length ? null : `salida ${r.code}`);
+    check('cli: --rules', r.code === 0 && JSON.parse(r.out).length === Object.keys(RULES).length ? null : `exit ${r.code}`);
   }
 
-  // ── 3. Servidor de referencia frente a una copia mutada ────────────────────
-  // [texto del servidor, reemplazo]: cada uno tiene que aparecer exactamente una vez.
+  // ── 3. Reference server against a mutated copy ────────────────────
+  // [server text, replacement]: each must appear exactly once.
   const MUTATIONS = [
-    // books: se deja de poder ordenar por year
-    ["sort: ['id', 'title', 'price', 'rating', 'year'],", "sort: ['id', 'title', 'price', 'rating'],"],
-    // books: year pasa a ser obligatorio (en create y en item, y deja de admitir null)
+    // books: sorting by year is no longer possible
+    ["sort: ['id', 'title', 'price', 'rating', 'year', 'reviews.rating'],", "sort: ['id', 'title', 'price', 'rating', 'reviews.rating'],"],
+    // books: year becomes required (in create and in item, and no longer admits null)
     ["required: ['title', 'price'],", "required: ['title', 'price', 'year'],"],
-    // books: max_limit baja de 50 a 20
+    // books: max_limit goes down from 50 to 20
     ["    max_limit: 50,\n    count: 'exact',\n    // 5.5: sorting by year", "    max_limit: 20,\n    count: 'exact',\n    // 5.5: sorting by year"],
-    // books: una categoría más
+    // books: one more category
     ["'poesia', 'infantil'] },", "'poesia', 'infantil', 'comic'] },"],
-    // categories: sus elementos dejan de admitir DELETE
+    // categories: its items no longer admit DELETE
     ["methods: ['GET', 'POST'], item_methods: ['GET', 'PATCH', 'DELETE'],\n    id_from: 'either',",
       "methods: ['GET', 'POST'], item_methods: ['GET', 'PATCH'],\n    id_from: 'either',"],
-    // books: filtro nuevo por title
-    ["filter: { id: ['eq', 'in'], price: ['eq', 'lt', 'le', 'gt', 'ge'], category: ['eq', 'ne', 'in'],",
-      "filter: { id: ['eq', 'in'], title: ['eq'], price: ['eq', 'lt', 'le', 'gt', 'ge'], category: ['eq', 'ne', 'in'],"],
-    // categories: la colación de name pasa de server a codepoint (borrador 6, §6.1)
-    ["collations: { name: 'server' },", "collations: { name: 'codepoint' },"],
-    // categories: el cliente tiene que elegir el id (borrador 6, §5.1)
+    // books: rating can also be filtered with le
+    ["rating: ['ge', 'null'],", "rating: ['ge', 'null', 'le'],"],
+    // categories: the collation of name goes from server to codepoint (§6.1)
+    ["unique: ['name'],\n    collations: { name: 'server' },", "unique: ['name'],\n    collations: { name: 'codepoint' },"],
+    // categories: the client has to choose the id (§5.1)
     ["    id_from: 'either',", "    id_from: 'client',"],
-    // books: highlight deja de poder expandirse con include (9)
+    // books: highlight can no longer be expanded with include (9)
     ["highlight: { to: 'reviews', include: true },", "highlight: { to: 'reviews' },"],
-    // products: restock pasa a ser idempotente (11.1, tabla de 5.5)
+    // products: restock becomes idempotent (11.1, table in 5.5)
     ["restock: { on: 'item', safe: false, idempotent: false,", "restock: { on: 'item', safe: false, idempotent: true,"],
-    // reviews, una subcolección: cuelga de otra variable con otro nombre (la misma URL) y gana include_depth
+    // reviews, a subcollection: hangs from another variable with another name (the same URL) and gains include_depth
     ["include_depth: 2,", "include_depth: 3,"],
-    // shop, un singleton (§5.9): deja de admitir PATCH
+    // shop, a singleton (§5.9): no longer admits PATCH
     ["  methods: ['GET', 'PATCH'],\n  types: { name: 'string', email:", "  methods: ['GET'],\n  types: { name: 'string', email:"],
   ];
   const EXPECTED = {
     'sort.removed': '/collections/books/sort',
-    // update también: el servidor solo admite null en los campos que no son obligatorios
+    // update too: the server only admits null in fields that are not required
     'input.type-narrowed': ['/collections/books/schemas/create/properties/year', '/collections/books/schemas/update/properties/year'],
     'field.type': '/collections/books/schemas/item/properties/year',
     'max-limit.lower': '/collections/books/max_limit',
     'filter.values-added': '/collections/books/filter/category/values',
     'field.enum-added': '/collections/books/schemas/item/properties/category',
     'input.enum-added': ['/collections/books/schemas/create/properties/category', '/collections/books/schemas/update/properties/category'],
-    'filter.added': '/collections/books/filter/title',
+    'filter.op-added': '/collections/books/filter/rating/ops',
     'collation.named': '/collections/categories/collations/name',
     'relation.include-removed': '/collections/books/relations/highlight/include',
     'action.stronger': '/collections/products/actions/restock/idempotent',
@@ -174,10 +175,10 @@ try {
     'input.now-required': ['/collections/books/schemas/create/properties/year', '/collections/categories/schemas/create/properties/id'],
     'method.removed': ['/collections/categories/item_methods', '/singletons/shop/methods'],
   };
-  if (!only || 'servidor'.includes(only)) {
+  if (!only || 'server'.includes(only)) {
     let src = SERVER;
     for (const [from, to] of MUTATIONS) {
-      if (src.split(from).length !== 2) throw new Error(`El texto no aparece exactamente una vez en el servidor:\n${from}`);
+      if (src.split(from).length !== 2) throw new Error(`The text does not appear exactly once in the server:\n${from}`);
       src = src.replace(from, () => to);
     }
     const servers = [];
@@ -186,23 +187,23 @@ try {
       writeFileSync(file, code);
       const p = spawn(process.execPath, [file], { env: { ...process.env, PORT: String(port), RESTEP_TOKEN: '' }, stdio: ['ignore', 'pipe', 'pipe'] });
       servers.push(p);
-      await new Promise((done, ko) => { p.stdout.once('data', done); p.once('exit', () => ko(new Error(`El servidor no arrancó en el puerto ${port}`))); });
+      await new Promise((done, ko) => { p.stdout.once('data', done); p.once('exit', () => ko(new Error(`The server did not start on port ${port}`))); });
     };
     try {
       await start(SERVER, PORTS[0]);
       await start(src, PORTS[1]);
       const [ref, mut] = PORTS.map((p) => `http://localhost:${p}/`);
       let r = await cli([ref, ref, '--json']);
-      check('servidor: la referencia frente a sí misma', r.code === 0 && JSON.parse(r.out).changes.length === 0 ? null : `salida ${r.code}: ${r.out.slice(0, 400)}${r.err}`);
+      check('server: the reference against itself', r.code === 0 && JSON.parse(r.out).changes.length === 0 ? null : `exit ${r.code}: ${r.out.slice(0, 400)}${r.err}`);
       r = await cli([ref, mut, '--json', '--language', 'es']);
       const changes = r.code === 2 ? [] : JSON.parse(r.out).changes;
       const got = new Set(changes.map((c) => c.rule));
-      const where = changes.filter((c) => EXPECTED[c.rule] && ![].concat(EXPECTED[c.rule]).includes(c.location)).map((c) => `${c.rule} en ${c.location}`);
-      check('servidor: la copia mutada da los cambios esperados', r.code !== 1 ? `salida ${r.code}: ${r.err}`
-        : setDiff(got, new Set(Object.keys(EXPECTED))) ?? (where.length ? `ubicaciones inesperadas: ${where.join('; ')}` : null));
+      const where = changes.filter((c) => EXPECTED[c.rule] && ![].concat(EXPECTED[c.rule]).includes(c.location)).map((c) => `${c.rule} at ${c.location}`);
+      check('server: the mutated copy gives the expected changes', r.code !== 1 ? `exit ${r.code}: ${r.err}`
+        : setDiff(got, new Set(Object.keys(EXPECTED))) ?? (where.length ? `unexpected locations: ${where.join('; ')}` : null));
       r = await cli([mut, ref, '--fail-on', 'none', '--json']);
       const back = JSON.parse(r.out).changes.map((c) => c.rule);
-      check('servidor: al revés, sort.added, max-limit.higher, method.added, filter.removed y collation.changed', ['sort.added', 'max-limit.higher', 'method.added', 'filter.removed', 'collation.changed'].every((x) => back.includes(x)) && r.code === 0
+      check('server: in reverse, sort.added, max-limit.higher, method.added, filter.op-removed and collation.changed', ['sort.added', 'max-limit.higher', 'method.added', 'filter.op-removed', 'collation.changed'].every((x) => back.includes(x)) && r.code === 0
         ? null : `${r.code}: ${back.join(', ')}`);
     } finally {
       for (const p of servers) p.kill();
@@ -212,5 +213,5 @@ try {
   rmSync(dir, { recursive: true, force: true });
 }
 
-console.log(failed ? `\n${failed} de ${passed + failed} pruebas fallan` : `\nLas ${passed} pruebas pasan`);
+console.log(failed ? `\n${failed} of ${passed + failed} tests fail` : `\nAll ${passed} tests pass`);
 process.exit(failed ? 1 : 0);
